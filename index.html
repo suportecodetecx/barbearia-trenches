@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Barbearia Trenches - Cabelo e Barba</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Oswald:wght@200;300;400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -42,40 +42,69 @@
             border-bottom: 1px solid rgba(192, 214, 239, 0.2);
         }
         .header-main { padding: 10px 0; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .header-brand { display: flex; align-items: center; gap: 12px; }
-        .header-logo { height: 40px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
-        .header-title { font-size: 18px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
-        .main-menu { display: flex; list-style: none; gap: 30px; }
-        .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; transition: color 0.3s; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .header-brand { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .header-logo { height: 50px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
+        .header-title { font-size: 16px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
+        .main-menu { display: flex; list-style: none; gap: 20px; flex-wrap: wrap; }
+        .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.3s; }
         .main-menu a:hover { color: var(--blue-primary); }
-        .user-area { display: flex; align-items: center; gap: 15px; }
-        .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .user-area { display: flex; align-items: center; gap: 10px; }
+        .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 6px 15px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-login:hover { box-shadow: 0 0 15px var(--blue-primary); background: rgba(192, 214, 239, 0.1); }
-        .user-profile { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 30px; }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue-primary); cursor: pointer; }
-        #userName { color: var(--blue-light); font-size: 13px; font-weight: 500; }
-        .btn-logout { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: var(--bg-main); border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; }
-        .btn-admin { background: linear-gradient(135deg, #ff9800, #ff5722); color: #000; border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .user-profile { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 30px; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue-primary); cursor: pointer; }
+        #userName { color: var(--blue-light); font-size: 12px; font-weight: 500; }
+        .btn-logout { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: var(--bg-main); border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 10px; }
+        .btn-admin { background: linear-gradient(135deg, #ff9800, #ff5722); color: #000; border: none; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 11px; }
 
-        .hero-section { height: 100vh; background: url('images/hero-bg.jpg'); background-size: cover; background-position: center 45%; background-attachment: fixed; display: flex; align-items: center; justify-content: center; }
-        .hero-scroll { color: var(--blue-primary); font-size: 40px; animation: bounce 2s infinite; }
+        .hero-section { 
+            height: 100vh; 
+            background: url('images/hero-bg.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            background-attachment: scroll;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        @media (max-width: 768px) {
+            .hero-section { background-attachment: scroll; background-position: 70% center; }
+            .header-title { font-size: 12px; }
+            .header-logo { height: 35px; }
+            .main-menu { gap: 12px; }
+            .main-menu a { font-size: 11px; }
+        }
+        .hero-scroll { color: var(--blue-primary); font-size: 40px; animation: bounce 2s infinite; cursor: pointer; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(20px); } }
 
-        .section-about, .section-services, .section-hours { padding: 80px 0; }
-        .section-title { text-align: center; color: var(--blue-primary); font-size: 36px; margin-bottom: 50px; letter-spacing: 2px; }
+        .section-about, .section-services, .section-hours { padding: 60px 0; }
+        @media (max-width: 768px) {
+            .section-about, .section-services, .section-hours { padding: 40px 0; }
+        }
+        .section-title { text-align: center; color: var(--blue-primary); font-size: 28px; margin-bottom: 40px; letter-spacing: 2px; }
+        @media (max-width: 768px) {
+            .section-title { font-size: 22px; margin-bottom: 30px; }
+        }
         .about-text { text-align: center; max-width: 800px; margin: 0 auto; }
 
         .main-barber-card {
             display: inline-block; text-align: center; background: rgba(16, 24, 39, 0.85);
-            backdrop-filter: blur(10px); padding: 30px 25px; border-radius: 20px;
+            backdrop-filter: blur(10px); padding: 20px; border-radius: 20px;
             margin-bottom: 0; border: 1px solid rgba(192, 214, 239, 0.3);
             transition: all 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 100%; max-width: 200px;
+        }
+        @media (max-width: 768px) {
+            .main-barber-card { padding: 15px; max-width: 160px; }
         }
         .main-barber-card:hover { transform: translateY(-5px); border-color: var(--blue-primary); }
-        .main-barber-photo { width: 180px; height: 180px; border-radius: 50%; object-fit: cover; border: 3px solid var(--blue-primary); margin-bottom: 15px; }
-        .main-barber-name { color: var(--blue-light); font-size: 22px; font-weight: 700; }
-        .main-barber-role { color: var(--silver-soft); font-size: 13px; }
+        .main-barber-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--blue-primary); margin-bottom: 15px; }
+        @media (max-width: 768px) {
+            .main-barber-photo { width: 90px; height: 90px; }
+        }
+        .main-barber-name { color: var(--blue-light); font-size: 18px; font-weight: 700; }
+        .main-barber-role { color: var(--silver-soft); font-size: 11px; }
 
         .barbeiros-equipe-grid {
             display: flex; justify-content: center; gap: 25px; flex-wrap: wrap;
@@ -84,53 +113,63 @@
 
         .btn-primary {
             display: inline-block; background: linear-gradient(135deg, var(--blue-primary), #0077ff);
-            color: #000; padding: 12px 30px; border-radius: 30px; text-decoration: none;
-            font-weight: bold; margin-top: 20px; cursor: pointer;
+            color: #000; padding: 10px 25px; border-radius: 30px; text-decoration: none;
+            font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 14px;
         }
         .btn-primary:hover { box-shadow: 0 0 25px var(--blue-primary); }
 
-        .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
-        .service-item { text-align: center; cursor: pointer; padding: 20px; border-radius: 15px; background: rgba(16, 24, 39, 0.75); transition: all 0.3s; }
-        .service-item:hover { transform: translateY(-10px); background: rgba(30, 42, 69, 0.9); }
-        .service-item img { max-width: 120px; border-radius: 20px; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.3)); }
+        .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        @media (max-width: 768px) {
+            .services-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        }
+        .service-item { text-align: center; cursor: pointer; padding: 15px; border-radius: 15px; background: rgba(16, 24, 39, 0.75); transition: all 0.3s; }
+        .service-item:hover { transform: translateY(-5px); background: rgba(30, 42, 69, 0.9); }
+        .service-item img { max-width: 80px; border-radius: 20px; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.3)); }
+        .service-item h3 { font-size: 14px; margin-top: 8px; }
 
-        .hours-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-        .hour-item { text-align: center; background: rgba(30, 42, 69, 0.85); padding: 20px 15px; border-radius: 20px; min-width: 100px; border: 1px solid rgba(192, 214, 239, 0.25); }
-        .hour-item h3 { color: var(--blue-primary); font-size: 18px; font-weight: 600; }
-        .hour-item p { color: var(--silver-soft); font-size: 14px; }
+        .hours-grid { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .hour-item { text-align: center; background: rgba(30, 42, 69, 0.85); padding: 15px; border-radius: 20px; min-width: 80px; border: 1px solid rgba(192, 214, 239, 0.25); }
+        .hour-item h3 { color: var(--blue-primary); font-size: 14px; font-weight: 600; }
+        .hour-item p { color: var(--silver-soft); font-size: 11px; }
 
         .bottom-section { display: grid; grid-template-columns: repeat(3, 1fr); background: rgba(11, 18, 32, 0.95); border-top: 1px solid rgba(192, 214, 239, 0.15); }
-        .col-precos, .col-info, .col-contato { padding: 35px 25px; text-align: center; }
+        @media (max-width: 768px) {
+            .bottom-section { grid-template-columns: 1fr; }
+        }
+        .col-precos, .col-info, .col-contato { padding: 25px; text-align: center; }
         .col-precos { background: rgba(23, 34, 53, 0.85); border-right: 1px solid rgba(192, 214, 239, 0.15); }
         .col-info { background: rgba(11, 18, 32, 0.85); border-right: 1px solid rgba(192, 214, 239, 0.15); }
         .col-contato { background: rgba(23, 34, 53, 0.85); }
-        .col-precos h3, .col-info h3, .col-contato h3 { color: var(--blue-primary); font-size: 18px; margin-bottom: 20px; }
+        @media (max-width: 768px) {
+            .col-precos, .col-info { border-right: none; border-bottom: 1px solid rgba(192, 214, 239, 0.15); }
+        }
+        .col-precos h3, .col-info h3, .col-contato h3 { color: var(--blue-primary); font-size: 16px; margin-bottom: 15px; }
 
         #dynamicPrices { margin-bottom: 15px; }
         .price-item {
             display: flex; justify-content: space-between; align-items: baseline;
-            margin-bottom: 10px; padding-bottom: 8px;
+            margin-bottom: 8px; padding-bottom: 8px;
             border-bottom: 1px dashed rgba(192, 214, 239, 0.2); flex-wrap: wrap;
         }
-        .price-name { color: var(--silver-main); font-size: 14px; }
-        .price-duration { color: var(--silver-soft); font-size: 11px; margin-left: 4px; }
-        .price-value { color: var(--blue-primary); font-size: 18px; font-weight: 700; }
+        .price-name { color: var(--silver-main); font-size: 13px; }
+        .price-duration { color: var(--silver-soft); font-size: 10px; margin-left: 4px; }
+        .price-value { color: var(--blue-primary); font-size: 16px; font-weight: 700; }
 
-        .reservar-btn { display: inline-block; background: transparent; border: 2px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 25px; margin-top: 15px; font-weight: 600; text-decoration: none; cursor: pointer; }
+        .reservar-btn { display: inline-block; background: transparent; border: 2px solid var(--blue-primary); color: var(--blue-primary); padding: 6px 20px; margin-top: 15px; font-weight: 600; text-decoration: none; cursor: pointer; font-size: 13px; }
         .reservar-btn:hover { background: var(--blue-primary); color: var(--bg-main); }
 
-        .logo-small { max-width: 100px; margin-bottom: 15px; }
-        .instagram-handle { color: var(--blue-primary); text-decoration: none; font-size: 14px; }
-        .address-text { color: var(--silver-soft); font-size: 13px; margin-top: 15px; }
-        .whatsapp-number { color: var(--blue-primary); font-size: 20px; font-weight: 700; text-decoration: none; }
+        .logo-small { max-width: 80px; margin-bottom: 15px; }
+        .instagram-handle { color: var(--blue-primary); text-decoration: none; font-size: 12px; }
+        .address-text { color: var(--silver-soft); font-size: 11px; margin-top: 15px; }
+        .whatsapp-number { color: var(--blue-primary); font-size: 16px; font-weight: 700; text-decoration: none; }
         .map-small { margin-top: 15px; border-radius: 8px; overflow: hidden; }
         .map-small iframe { width: 100%; height: 150px; border: none; }
 
         .copyright-bar { background: rgba(11, 18, 32, 0.95); text-align: center; padding: 12px; }
-        .copyright-bar p { font-size: 11px; color: var(--silver-soft); }
+        .copyright-bar p { font-size: 10px; color: var(--silver-soft); }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; backdrop-filter: blur(8px); overflow-y: auto; }
-        .modal-content { position: relative; background: rgba(15, 23, 42, 0.98); margin: 20px auto; padding: 20px 18px; width: 92%; max-width: 440px; border-radius: 16px; border: 1px solid rgba(192, 214, 239, 0.3); }
+        .modal-content { position: relative; background: rgba(15, 23, 42, 0.98); margin: 20px auto; padding: 20px; width: 92%; max-width: 440px; border-radius: 16px; border: 1px solid rgba(192, 214, 239, 0.3); }
         #bookingModal .modal-content { max-height: 90vh; overflow-y: auto; }
         .close { position: absolute; right: 12px; top: 10px; font-size: 22px; cursor: pointer; color: var(--silver-soft); }
         .auth-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
@@ -138,21 +177,20 @@
         .tab-btn.active { background: var(--blue-primary); color: #000; }
         .auth-form { display: none; }
         .auth-form.active { display: block; }
-        .auth-form h3 { text-align: center; margin-bottom: 15px; color: var(--blue-light); }
-        .auth-form input { width: 100%; padding: 11px 14px; margin-bottom: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: #fff; }
-        .btn-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--blue-primary), #0077ff); border: none; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; }
+        .auth-form h3 { text-align: center; margin-bottom: 15px; color: var(--blue-light); font-size: 18px; }
+        .auth-form input { width: 100%; padding: 10px; margin-bottom: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: #fff; font-size: 14px; }
+        .btn-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--blue-primary), #0077ff); border: none; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
         .forgot-password { text-align: center; margin-top: 10px; }
-        .forgot-password a { color: var(--blue-light); font-size: 12px; text-decoration: none; cursor: pointer; }
-        .forgot-password a:hover { text-decoration: underline; }
+        .forgot-password a { color: var(--blue-light); font-size: 11px; text-decoration: none; cursor: pointer; }
 
         .calendar-container { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
         .calendar-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .calendar-nav-btn { background: var(--blue-steel); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: white; }
-        #currentMonth { font-size: 16px; font-weight: 600; color: var(--blue-light); flex: 1; text-align: center; }
+        .calendar-nav-btn { background: var(--blue-steel); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: white; font-size: 12px; }
+        #currentMonth { font-size: 14px; font-weight: 600; color: var(--blue-light); flex: 1; text-align: center; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-        .calendar-weekday { text-align: center; font-weight: 600; padding: 5px 2px; color: var(--blue-primary); font-size: 10px; }
-        .calendar-day { text-align: center; padding: 8px 2px; border-radius: 6px; background: rgba(255,255,255,0.05); font-size: 13px; cursor: default; }
+        .calendar-weekday { text-align: center; font-weight: 600; padding: 5px 2px; color: var(--blue-primary); font-size: 9px; }
+        .calendar-day { text-align: center; padding: 6px 2px; border-radius: 6px; background: rgba(255,255,255,0.05); font-size: 12px; cursor: default; }
         .calendar-day.available { background: rgba(192, 214, 239, 0.22); cursor: pointer; font-weight: 600; }
         .calendar-day.available:hover { background: var(--blue-primary); color: var(--bg-main); }
         .calendar-day.unavailable { opacity: 0.4; }
@@ -161,25 +199,35 @@
 
         .time-section { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
         .time-slots { display: flex; flex-wrap: wrap; gap: 6px; padding: 3px; justify-content: center; max-height: 140px; overflow-y: auto; }
-        .time-slot { padding: 7px 14px; background: rgba(192, 214, 239, 0.15); border: 1px solid var(--blue-steel); color: var(--silver-main); border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .time-slot { padding: 6px 12px; background: rgba(192, 214, 239, 0.15); border: 1px solid var(--blue-steel); color: var(--silver-main); border-radius: 20px; cursor: pointer; font-size: 12px; }
         .time-slot.selected { background: var(--blue-primary); color: var(--bg-main); }
-        .time-slot.disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .service-select { width: 100%; padding: 11px 14px; margin: 8px 0; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: var(--silver-main); font-size: 14px; }
+        .service-select { width: 100%; padding: 10px; margin: 8px 0; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: var(--silver-main); font-size: 13px; }
         .booking-buttons { display: flex; gap: 10px; margin-top: 10px; }
-        .btn-secondary { flex: 1; background: transparent; border: 1px solid var(--blue-steel); color: var(--silver-main); padding: 11px 8px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-secondary { flex: 1; background: transparent; border: 1px solid var(--blue-steel); color: var(--silver-main); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
 
         .whatsapp-float { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
-        .whatsapp-float img { width: 55px; height: 55px; border-radius: 50%; }
+        .whatsapp-float img { width: 50px; height: 50px; border-radius: 50%; }
+        @media (max-width: 768px) {
+            .whatsapp-float img { width: 45px; height: 45px; }
+        }
 
         .profile-avatar-large { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
 
+        /* Menu responsivo */
+        .menu-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--blue-primary);
+            font-size: 24px;
+            cursor: pointer;
+        }
         @media (max-width: 768px) {
-            .services-grid { grid-template-columns: repeat(2, 1fr); }
-            .bottom-section { grid-template-columns: 1fr; }
-            .col-precos, .col-info { border-right: none; border-bottom: 1px solid rgba(192, 214, 239, 0.15); }
-            .main-menu { display: none; }
-            .main-barber-photo { width: 140px; height: 140px; }
+            .menu-toggle { display: block; }
+            .header-center { display: none; width: 100%; order: 3; }
+            .header-center.active { display: block; }
+            .main-menu { flex-direction: column; align-items: center; padding: 15px 0; gap: 15px; }
         }
     </style>
 </head>
@@ -194,7 +242,8 @@
                             <img src="images/logoca.png" alt="Logo" class="header-logo">
                             <span class="header-title">BARBEARIA TRENCHES</span>
                         </div>
-                        <div class="header-center hidden-for-sm">
+                        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                        <div class="header-center hidden-for-sm" id="menuMobile">
                             <ul class="main-menu">
                                 <li><a href="#home">Home</a></li>
                                 <li><a href="#aboutus">Sobre</a></li>
@@ -283,7 +332,7 @@
         <div id="bookingModal" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="document.getElementById('bookingModal').style.display='none'">&times;</span>
-                <h3 style="text-align: center; margin-bottom: 12px; color: var(--blue-primary); font-size: 20px;">Agendar Horario</h3>
+                <h3 style="text-align: center; margin-bottom: 12px; color: var(--blue-primary); font-size: 20px;">Agendar Horário</h3>
                 <div class="calendar-container">
                     <div class="calendar-header-row">
                         <button id="prevMonth" class="calendar-nav-btn"><i class="fas fa-chevron-left"></i></button>
@@ -293,7 +342,7 @@
                     <div id="calendarGrid" class="calendar-grid"></div>
                 </div>
                 <div class="time-section">
-                    <h4>Horários disponiveis</h4>
+                    <h4>Horários disponíveis</h4>
                     <div id="timeSlots" class="time-slots"></div>
                 </div>
                 <select id="bookingService" class="service-select">
@@ -328,8 +377,8 @@
                     <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
                     <h2>SOBRE A BARBEARIA TRENCHES</h2>
                     <p>Ambiente sofisticado, aconchegante e acolhedor. Equipe de profissionais qualificados.</p>
-                    <p>Localizada em bairro de facil acesso com estacionamento proprio.</p>
-                    <a href="#" class="btn-primary" id="agendarBtn">Agende um Horario</a>
+                    <p>Localizada em bairro de fácil acesso com estacionamento próprio.</p>
+                    <a href="#" class="btn-primary" id="agendarBtn">Agende um Horário</a>
                 </div>
             </div>
         </section>
@@ -355,21 +404,21 @@
                     <div class="hour-item"><h3>QUA</h3><p id="hourWedDisplay">09h - 20h</p></div>
                     <div class="hour-item"><h3>QUI</h3><p id="hourThuDisplay">09h - 21h</p></div>
                     <div class="hour-item"><h3>SEX</h3><p id="hourFriDisplay">09h - 21h</p></div>
-                    <div class="hour-item"><h3>SAB</h3><p id="hourSatDisplay">09h - 18h</p></div>
+                    <div class="hour-item"><h3>SÁB</h3><p id="hourSatDisplay">09h - 18h</p></div>
                 </div>
             </div>
         </section>
 
         <div class="bottom-section">
             <div class="col-precos">
-                <h3>PRECOS</h3>
+                <h3>PREÇOS</h3>
                 <div id="dynamicPrices"></div>
                 <a href="#" class="reservar-btn" id="footerReservarBtn">Reservar</a>
             </div>
             <div class="col-info">
                 <img src="images/logoca.png" alt="Logo" class="logo-small">
                 <div><a href="https://www.instagram.com/" target="_blank" class="instagram-handle" id="instagramHandle">@barbeariatrenches</a></div>
-                <div class="address-text" id="contactAddress"><strong>Endereco</strong><br>Av. Maj. Melo, 35<br>Vila Nova Aparecida<br>Mogi das Cruzes - SP</div>
+                <div class="address-text" id="contactAddress"><strong>Endereço</strong><br>Av. Maj. Melo, 35<br>Vila Nova Aparecida<br>Mogi das Cruzes - SP</div>
             </div>
             <div class="col-contato">
                 <h3>CONTATO</h3>
@@ -377,13 +426,18 @@
                 <div class="map-small"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.8315312225436!2d-46.20410648502267!3d-23.5385609846942!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94cdd86a8c4f5e1f%3A0xbfed81783d31c9b1!2sAv.%20Maj.%20Melo%2C%2035%20-%20Vila%20Nova%20Aparecida%2C%20Mogi%20das%20Cruzes%20-%20SP%2C%2008830-200!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr" style="width:100%; height:150px; border:0;" allowfullscreen="" loading="lazy"></iframe></div>
             </div>
         </div>
-        <div class="copyright-bar"><p>CodeTecx | 2026 CodeTecx Solucoes | v2.5</p></div>
+        <div class="copyright-bar"><p>CodeTecx | 2026 CodeTecx Soluções | v2.5</p></div>
     </div>
 
     <script src="js/calendar.js"></script>
     
     <script>
         let currentUser = null;
+        
+        // Menu mobile
+        document.getElementById('menuToggle')?.addEventListener('click', function() {
+            document.getElementById('menuMobile').classList.toggle('active');
+        });
         
         function showMessage(m) {
             const t = document.getElementById('toastModal');
@@ -427,7 +481,7 @@
                 }
             } catch (error) {
                 console.error('Erro no login:', error);
-                showMessage('Erro de conexao com o servidor');
+                showMessage('Erro de conexão com o servidor');
                 return false;
             }
         }
@@ -443,7 +497,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showMessage('Cadastro realizado! Faca login.');
+                    showMessage('Cadastro realizado! Faça login.');
                     document.getElementById('registerForm').reset();
                     document.querySelector('.tab-btn[data-tab="login"]').click();
                     return true;
@@ -453,7 +507,7 @@
                 }
             } catch (error) {
                 console.error('Erro no cadastro:', error);
-                showMessage('Erro de conexao com o servidor');
+                showMessage('Erro de conexão com o servidor');
                 return false;
             }
         }
@@ -462,7 +516,7 @@
             currentUser = null;
             localStorage.removeItem('currentUser');
             updateUIForLoggedOutUser();
-            showMessage('Voce saiu da sua conta.');
+            showMessage('Você saiu da sua conta.');
         }
         
         function updateUIForLoggedInUser(user) {
@@ -506,8 +560,8 @@
                 });
                 return await response.json();
             } catch (error) {
-                console.error('Erro ao buscar usuario:', error);
-                return { success: false, message: 'Erro de conexao' };
+                console.error('Erro ao buscar usuário:', error);
+                return { success: false, message: 'Erro de conexão' };
             }
         }
         
@@ -521,7 +575,7 @@
                 return await response.json();
             } catch (error) {
                 console.error('Erro ao resetar senha:', error);
-                return { success: false, message: 'Erro de conexao' };
+                return { success: false, message: 'Erro de conexão' };
             }
         }
         
@@ -542,13 +596,13 @@
             document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const telefone = document.getElementById('resetPhone').value.trim();
-                if (!telefone) { showMessage('Digite seu numero de celular'); return; }
+                if (!telefone) { showMessage('Digite seu número de celular'); return; }
                 
                 showMessage('Buscando conta...');
                 const result = await findUserByPhoneAPI(telefone);
                 
                 if (result.success) {
-                    document.getElementById('resetUserName').innerHTML = 'Usuario encontrado: <strong>' + result.nome + '</strong>';
+                    document.getElementById('resetUserName').innerHTML = 'Usuário encontrado: <strong>' + result.nome + '</strong>';
                     document.getElementById('resetUserInfo').style.display = 'block';
                     showMessage('Conta encontrada! Digite sua nova senha.');
                 } else {
@@ -563,13 +617,13 @@
                 const confirmarSenha = document.getElementById('confirmNewPassword').value;
                 
                 if (!novaSenha || novaSenha.length < 4) { showMessage('A senha deve ter pelo menos 4 caracteres'); return; }
-                if (novaSenha !== confirmarSenha) { showMessage('As senhas nao conferem'); return; }
+                if (novaSenha !== confirmarSenha) { showMessage('As senhas não conferem'); return; }
                 
                 showMessage('Alterando senha...');
                 const result = await resetPasswordAPI(telefone, novaSenha);
                 
                 if (result.success) {
-                    showMessage('Senha alterada com sucesso! Faca login com sua nova senha.');
+                    showMessage('Senha alterada com sucesso! Faça login com sua nova senha.');
                     document.getElementById('forgotPasswordModal').style.display = 'none';
                     document.getElementById('resetPhone').value = '';
                     document.getElementById('newPassword').value = '';
@@ -601,7 +655,7 @@
                         </div>
                     `).join('');
                 } else {
-                    ec.innerHTML = '';
+                    ec.innerHTML = '<p>Nenhum barbeiro cadastrado</p>';
                 }
             }
         }
@@ -657,7 +711,7 @@
                     }
                     if (cfg.address) {
                         const ca = document.getElementById('contactAddress');
-                        if (ca) ca.innerHTML = '<strong>Endereco</strong><br>' + cfg.address.replace(/\n/g, '<br>');
+                        if (ca) ca.innerHTML = '<strong>Endereço</strong><br>' + cfg.address.replace(/\n/g, '<br>');
                     }
                     if (cfg.phone) {
                         const cp = document.getElementById('contactPhone');
@@ -697,7 +751,7 @@
         
         function openBookingModal(s) {
             if (!currentUser) {
-                showMessage('Faca login para agendar');
+                showMessage('Faça login para agendar');
                 document.getElementById('authModal').style.display = 'block';
                 return;
             }
@@ -713,7 +767,7 @@
                 }
             }
             if (typeof initCalendar === 'function') {
-                initCalendar().catch(e => console.error('Erro ao inicializar calendario:', e));
+                initCalendar().catch(e => console.error('Erro ao inicializar calendário:', e));
             }
             const bm = document.getElementById('bookingModal');
             if (bm) bm.style.display = 'block';
@@ -746,7 +800,7 @@
                 const confirm = document.getElementById('regConfirm').value;
                 
                 if (!name || !phone || !password) { showMessage('Preencha todos os campos!'); return; }
-                if (password !== confirm) { showMessage('As senhas nao conferem!'); return; }
+                if (password !== confirm) { showMessage('As senhas não conferem!'); return; }
                 if (password.length < 4) { showMessage('A senha deve ter pelo menos 4 caracteres!'); return; }
                 
                 await register(name, phone, password);
@@ -770,7 +824,6 @@
             if (fb) fb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
             if (mb) mb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
             
-            // Botao GESTOR - abrir admin.html
             const adminBtn = document.getElementById('adminPanelBtn');
             if (adminBtn) {
                 adminBtn.addEventListener('click', () => {
