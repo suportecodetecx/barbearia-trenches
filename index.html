@@ -44,8 +44,8 @@
         .header-main { padding: 10px 0; }
         .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .header-brand { display: flex; align-items: center; gap: 12px; flex: 1; }
-        .header-logo { height: 50px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
-        .header-title { font-size: 16px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
+        .header-logo { height: 60px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
+        .header-title { font-size: 18px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
         .main-menu { display: flex; list-style: none; gap: 20px; flex-wrap: wrap; }
         .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.3s; }
         .main-menu a:hover { color: var(--blue-primary); }
@@ -71,7 +71,7 @@
         @media (max-width: 768px) {
             .hero-section { background-attachment: scroll; background-position: 70% center; }
             .header-title { font-size: 12px; }
-            .header-logo { height: 35px; }
+            .header-logo { height: 40px; }
             .main-menu { gap: 12px; }
             .main-menu a { font-size: 11px; }
         }
@@ -212,22 +212,49 @@
             .whatsapp-float img { width: 45px; height: 45px; }
         }
 
-        .profile-avatar-large { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
+        .profile-avatar-large { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
 
-        /* Menu responsivo */
+        /* Menu responsivo - icone tres riscos na esquerda */
         .menu-toggle {
             display: none;
             background: transparent;
             border: none;
             color: var(--blue-primary);
-            font-size: 24px;
+            font-size: 28px;
             cursor: pointer;
+            order: 0;
         }
         @media (max-width: 768px) {
             .menu-toggle { display: block; }
-            .header-center { display: none; width: 100%; order: 3; }
+            .header-row { justify-content: space-between; }
+            .header-brand { order: 1; flex: 0 1 auto; }
+            .menu-toggle { order: 2; }
+            .header-right { order: 3; }
+            .header-center { display: none; width: 100%; order: 4; }
             .header-center.active { display: block; }
             .main-menu { flex-direction: column; align-items: center; padding: 15px 0; gap: 15px; }
+        }
+
+        /* Modal de recuperacao de senha - fundo escuro igual ao login */
+        #forgotPasswordModal input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--blue-steel);
+            border-radius: 8px;
+            color: #fff;
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+        #forgotPasswordModal input:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 10px rgba(192, 214, 239, 0.3);
+        }
+        #forgotPasswordModal input::placeholder {
+            color: var(--silver-soft);
+            opacity: 0.7;
+        }
+        #resetUserName strong {
+            color: var(--blue-primary);
         }
     </style>
 </head>
@@ -238,11 +265,11 @@
             <header>
                 <div class="header-main">
                     <div class="header-row container">
+                        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
                         <div class="header-brand">
                             <img src="images/logoca.png" alt="Logo" class="header-logo">
                             <span class="header-title">BARBEARIA TRENCHES</span>
                         </div>
-                        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
                         <div class="header-center hidden-for-sm" id="menuMobile">
                             <ul class="main-menu">
                                 <li><a href="#home">Home</a></li>
@@ -434,7 +461,7 @@
     <script>
         let currentUser = null;
         
-        // Menu mobile
+        // Menu mobile - icone tres riscos
         document.getElementById('menuToggle')?.addEventListener('click', function() {
             document.getElementById('menuMobile').classList.toggle('active');
         });
