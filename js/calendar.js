@@ -27,14 +27,41 @@ function formatDateDisplay(date) {
     return `${dias[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
+// Carregar datas bloqueadas do adminSettings
+function getBlockedDates() {
+    const settings = localStorage.getItem('adminSettings');
+    if (settings) {
+        try {
+            const parsed = JSON.parse(settings);
+            return parsed.blockedDates || [];
+        } catch(e) {
+            console.error('Erro ao ler blockedDates:', e);
+        }
+    }
+    return [];
+}
+
+// Verificar se uma data esta bloqueada (feriados)
+function isDateBlocked(date) {
+    const blockedDates = getBlockedDates();
+    const dateStr = formatDateStr(date);
+    return blockedDates.includes(dateStr);
+}
+
 // Verificar se data esta disponivel
 function isDateAvailable(date) {
     const dayOfWeek = date.getDay();
+    
+    // Verificar dias fechados (Domingo e Segunda)
     if (DIAS_FECHADOS.includes(dayOfWeek)) return false;
     
+    // Verificar se a data ja passou
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) return false;
+    
+    // Verificar se esta bloqueada (feriados)
+    if (isDateBlocked(date)) return false;
     
     return true;
 }
@@ -55,7 +82,6 @@ function getAvailableTimes(date, bookings) {
     const bookingsToday = bookings.filter(b => b.date === dateStr);
     const horariosReservados = bookingsToday.map(b => b.time);
     
-    // Gerar horarios a cada 30 minutos
     for (let hour = horario.start; hour < horario.end; hour++) {
         const timeFull = `${String(hour).padStart(2, '0')}:00`;
         let isPast = false;
@@ -155,13 +181,14 @@ function renderCalendar() {
             dayEl.style.cursor = 'not-allowed';
             if (date.getDay() === 0) dayEl.title = 'Domingo - Fechado';
             else if (date.getDay() === 1) dayEl.title = 'Segunda-feira - Fechado';
+            else if (isDateBlocked(date)) dayEl.title = 'Feriado - Barbearia Fechada';
             else if (isPast) dayEl.title = 'Data ja passou';
         }
         calendarGrid.appendChild(dayEl);
     }
 }
 
-// Selecionar data (sem mensagem popup)
+// Selecionar data
 async function selectDate(date) {
     console.log('Data selecionada:', formatDateDisplay(date));
     selectedDate = date;
@@ -190,7 +217,6 @@ async function selectDate(date) {
     const confirmBtn = document.getElementById('confirmBookingBtn');
     if (confirmBtn) confirmBtn.disabled = true;
     
-    // Atualizar visual
     document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
     const dayElements = document.querySelectorAll('.calendar-day:not(.empty)');
     for (let el of dayElements) {
@@ -201,7 +227,7 @@ async function selectDate(date) {
     }
 }
 
-// Selecionar horario (sem mensagem popup)
+// Selecionar horario
 function selectTime(time) {
     console.log('Horario selecionado:', time);
     selectedTime = time;
@@ -408,7 +434,7 @@ async function initCalendar() {
         newConfirmBtn.disabled = true;
     }
     
-    console.log('Calendario inicializado');
+    console.log('Calendario inicializado - Datas bloqueadas: ' + getBlockedDates().join(', '));
 }
 
 window.initCalendar = initCalendar;
@@ -416,4 +442,4 @@ window.confirmBooking = confirmBooking;
 window.showMyBookings = showMyBookings;
 window.renderCalendar = renderCalendar;
 
-console.log('Calendar.js carregado - Dias fechados: Domingo e Segunda');
+console.log('Calendar.js carregado - Dias fechados: Domingo, Segunda e datas bloqueadas');
