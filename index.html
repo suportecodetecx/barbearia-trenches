@@ -32,6 +32,7 @@
             background-repeat: no-repeat;
             color: var(--silver-main);
             line-height: 1.6;
+            padding-top: 70px;
         }
 
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
@@ -47,7 +48,7 @@
         .header-logo { height: 70px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
         .header-title { font-size: 20px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
         .main-menu { display: flex; list-style: none; gap: 20px; flex-wrap: wrap; }
-        .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.3s; }
+        .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.3s; cursor: pointer; }
         .main-menu a:hover { color: var(--blue-primary); }
         .user-area { display: flex; align-items: center; gap: 10px; }
         .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -75,6 +76,7 @@
             .header-title { font-size: 14px; }
             .header-logo { height: 55px; }
             .btn-login { padding: 6px 15px; font-size: 12px; }
+            body { padding-top: 60px; }
         }
         .hero-scroll { color: var(--blue-primary); font-size: 40px; animation: bounce 2s infinite; cursor: pointer; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(20px); } }
@@ -89,6 +91,14 @@
         }
         .about-text { text-align: center; max-width: 800px; margin: 0 auto; }
 
+        /* Seção de Barbeiros - vem antes do título SOBRE */
+        .barbeiros-section {
+            margin-bottom: 30px;
+        }
+        .barbeiros-equipe-grid {
+            display: flex; justify-content: center; gap: 25px; flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
         .main-barber-card {
             display: inline-block; text-align: center; background: rgba(16, 24, 39, 0.85);
             backdrop-filter: blur(10px); padding: 20px; border-radius: 20px;
@@ -106,11 +116,6 @@
         }
         .main-barber-name { color: var(--blue-light); font-size: 18px; font-weight: 700; }
         .main-barber-role { color: var(--silver-soft); font-size: 11px; }
-
-        .barbeiros-equipe-grid {
-            display: flex; justify-content: center; gap: 25px; flex-wrap: wrap;
-            margin-bottom: 40px;
-        }
 
         .btn-primary {
             display: inline-block; background: linear-gradient(135deg, var(--blue-primary), #0077ff);
@@ -348,11 +353,11 @@
                                 <button id="mobileAdminBtn" class="mobile-admin-btn" style="display: none;">GESTOR</button>
                             </div>
                             <ul class="main-menu">
-                                <li><a href="#home">Home</a></li>
-                                <li><a href="#aboutus">Sobre</a></li>
-                                <li><a href="#ourservices">Serviços</a></li>
-                                <li><a href="#hours">Atendimento</a></li>
-                                <li><a href="#" id="menuReservasBtn">Reservas</a></li>
+                                <li><a class="menu-link" href="#home" data-close-menu="true">Home</a></li>
+                                <li><a class="menu-link" href="#aboutus" data-close-menu="true">Sobre</a></li>
+                                <li><a class="menu-link" href="#ourservices" data-close-menu="true">Serviços</a></li>
+                                <li><a class="menu-link" href="#hours" data-close-menu="true">Atendimento</a></li>
+                                <li><a class="menu-link" href="#" id="menuReservasBtn" data-close-menu="true">Reservas</a></li>
                             </ul>
                         </div>
                         <div class="header-right">
@@ -477,7 +482,10 @@
         <section id="aboutus" class="section-about">
             <div class="container">
                 <div class="about-text">
-                    <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
+                    <!-- BARBEIROS - AGORA VEM PRIMEIRO, ANTES DO TÍTULO SOBRE -->
+                    <div class="barbeiros-section">
+                        <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
+                    </div>
                     <h2>SOBRE A BARBEARIA TRENCHES</h2>
                     <p>Ambiente sofisticado, aconchegante e acolhedor. Equipe de profissionais qualificados.</p>
                     <p>Localizada em bairro de fácil acesso com estacionamento próprio.</p>
@@ -538,8 +546,33 @@
         let currentUser = null;
         
         // Menu mobile - icone tres riscos
-        document.getElementById('menuToggle')?.addEventListener('click', function() {
-            document.getElementById('menuMobile').classList.toggle('active');
+        const menuToggle = document.getElementById('menuToggle');
+        const menuMobile = document.getElementById('menuMobile');
+        
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function() {
+                menuMobile.classList.toggle('active');
+            });
+        }
+        
+        // Fechar menu ao clicar nos links e rolar para a seção
+        document.querySelectorAll('.menu-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('href');
+                if (targetId && targetId !== '#') {
+                    e.preventDefault();
+                    // Fechar o menu
+                    menuMobile.classList.remove('active');
+                    // Rolar para a seção
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else if (targetId === '#') {
+                    // Para o link Reservas, apenas fechar o menu
+                    menuMobile.classList.remove('active');
+                }
+            });
         });
         
         function showMessage(m) {
@@ -924,7 +957,7 @@
             if (mobileLogoutBtn) {
                 mobileLogoutBtn.addEventListener('click', () => {
                     logout();
-                    document.getElementById('menuMobile').classList.remove('active');
+                    menuMobile.classList.remove('active');
                 });
             }
             
