@@ -10,9 +10,7 @@
     {
       "src": "/js/(.*)",
       "dest": "/js/$1",
-      "headers": {
-        "Content-Type": "application/javascript"
-      }
+      "headers": { "Content-Type": "application/javascript" }
     },
     {
       "src": "/images/(.*)",
