@@ -764,6 +764,75 @@ h1, h2, h3, h4, h5, h6 {
     animation: fadeInUp 0.3s ease;
 }
 
+/* Modal de Recuperação de Senha - Corrigido */
+#forgotPasswordModal .modal-content {
+    max-width: 420px;
+}
+
+#forgotPasswordModal h3 {
+    color: var(--blue-primary);
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#forgotPasswordModal input {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--blue-steel);
+    border-radius: 10px;
+    color: var(--silver-main);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#forgotPasswordModal input:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 10px rgba(127, 166, 217, 0.3);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+#forgotPasswordModal input::placeholder {
+    color: var(--silver-soft);
+    opacity: 0.7;
+}
+
+#resetUserInfo {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(127, 166, 217, 0.2);
+}
+
+#resetUserName {
+    color: var(--silver-soft);
+    font-size: 14px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+#resetUserName strong {
+    color: var(--blue-primary);
+}
+
+#forgotPasswordModal .btn-submit {
+    margin-top: 5px;
+}
+
+/* Modal de Perfil */
+#profileModal .modal-content {
+    max-width: 360px;
+    text-align: center;
+}
+
+#profileModal h3 {
+    color: var(--blue-primary);
+    margin-bottom: 20px;
+}
+
+/* Modal de Agenda */
 #bookingModal .modal-content {
     max-height: 90vh;
     overflow-y: auto;
@@ -804,18 +873,42 @@ h1, h2, h3, h4, h5, h6 {
 .auth-form h3 { text-align: center; margin-bottom: 18px; color: var(--blue-light); }
 .auth-form input, .auth-form select {
     width: 100%; padding: 11px 14px; margin-bottom: 12px;
-    background: rgba(0, 0, 0, 0.3); border: 1px solid var(--blue-steel);
-    border-radius: 8px; color: var(--silver-main); font-size: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--blue-steel);
+    border-radius: 8px;
+    color: var(--silver-main);
+    font-size: 14px;
+    transition: all 0.3s ease;
 }
-.auth-form input:focus, .auth-form select:focus { outline: none; border-color: var(--blue-primary); }
+.auth-form input:focus, .auth-form select:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 10px rgba(127, 166, 217, 0.3);
+    background: rgba(0, 0, 0, 0.6);
+}
+.auth-form input::placeholder {
+    color: var(--silver-soft);
+    opacity: 0.7;
+}
 
 .btn-submit {
     background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary));
-    color: var(--bg-main); border: none; padding: 12px 30px; font-size: 15px;
-    cursor: pointer; font-family: 'Oswald', sans-serif; transition: all 0.3s;
-    font-weight: bold; border-radius: 8px; width: 100%;
+    color: var(--bg-main);
+    border: none;
+    padding: 12px 30px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: 'Oswald', sans-serif;
+    transition: all 0.3s;
+    font-weight: bold;
+    border-radius: 8px;
+    width: 100%;
 }
-.btn-submit:hover { background: linear-gradient(135deg, var(--camo-dark), var(--camo-mid)); color: var(--silver-light); box-shadow: 0 0 20px rgba(127, 166, 217, 0.3); }
+.btn-submit:hover {
+    background: linear-gradient(135deg, var(--camo-dark), var(--camo-mid));
+    color: var(--silver-light);
+    box-shadow: 0 0 20px rgba(127, 166, 217, 0.3);
+}
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-submit:disabled:hover { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: var(--bg-main); box-shadow: none; }
 
@@ -1094,4 +1187,19 @@ h1, h2, h3, h4, h5, h6 {
     .time-slots { max-height: 120px; }
     .time-slot { padding: 6px 10px; font-size: 11px; }
     .btn-submit { padding: 10px 20px; font-size: 14px; }
+    
+    /* Ajustes específicos para o modal de recuperação de senha em mobile */
+    #forgotPasswordModal .modal-content {
+        padding: 20px 15px;
+        margin: 10px auto;
+    }
+    
+    #forgotPasswordModal input {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+    
+    #resetUserName {
+        font-size: 13px;
+    }
 }
