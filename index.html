@@ -44,19 +44,21 @@
         .header-main { padding: 10px 0; }
         .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .header-brand { display: flex; align-items: center; gap: 12px; flex: 1; }
-        .header-logo { height: 60px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
-        .header-title { font-size: 18px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
+        .header-logo { height: 70px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
+        .header-title { font-size: 20px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
         .main-menu { display: flex; list-style: none; gap: 20px; flex-wrap: wrap; }
         .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; font-size: 14px; transition: color 0.3s; }
         .main-menu a:hover { color: var(--blue-primary); }
         .user-area { display: flex; align-items: center; gap: 10px; }
-        .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 6px 15px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .btn-login:hover { box-shadow: 0 0 15px var(--blue-primary); background: rgba(192, 214, 239, 0.1); }
+        
+        /* Desktop user profile */
         .user-profile { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 30px; }
-        .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue-primary); cursor: pointer; }
+        .user-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue-primary); cursor: pointer; }
         #userName { color: var(--blue-light); font-size: 12px; font-weight: 500; }
         .btn-logout { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: var(--bg-main); border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 10px; }
-        .btn-admin { background: linear-gradient(135deg, #ff9800, #ff5722); color: #000; border: none; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-admin { background: linear-gradient(135deg, #ff9800, #ff5722); color: #000; border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 12px; }
 
         .hero-section { 
             height: 100vh; 
@@ -69,11 +71,10 @@
             justify-content: center; 
         }
         @media (max-width: 768px) {
-            .hero-section { background-attachment: scroll; background-position: 70% center; }
-            .header-title { font-size: 12px; }
-            .header-logo { height: 40px; }
-            .main-menu { gap: 12px; }
-            .main-menu a { font-size: 11px; }
+            .hero-section { display: none; }
+            .header-title { font-size: 14px; }
+            .header-logo { height: 55px; }
+            .btn-login { padding: 6px 15px; font-size: 12px; }
         }
         .hero-scroll { color: var(--blue-primary); font-size: 40px; animation: bounce 2s infinite; cursor: pointer; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(20px); } }
@@ -101,7 +102,7 @@
         .main-barber-card:hover { transform: translateY(-5px); border-color: var(--blue-primary); }
         .main-barber-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--blue-primary); margin-bottom: 15px; }
         @media (max-width: 768px) {
-            .main-barber-photo { width: 90px; height: 90px; }
+            .main-barber-photo { width: 100px; height: 100px; }
         }
         .main-barber-name { color: var(--blue-light); font-size: 18px; font-weight: 700; }
         .main-barber-role { color: var(--silver-soft); font-size: 11px; }
@@ -199,7 +200,10 @@
 
         .time-section { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
         .time-slots { display: flex; flex-wrap: wrap; gap: 6px; padding: 3px; justify-content: center; max-height: 140px; overflow-y: auto; }
-        .time-slot { padding: 6px 12px; background: rgba(192, 214, 239, 0.15); border: 1px solid var(--blue-steel); color: var(--silver-main); border-radius: 20px; cursor: pointer; font-size: 12px; }
+        .time-slot { padding: 8px 16px; background: rgba(192, 214, 239, 0.15); border: 1px solid var(--blue-steel); color: var(--silver-main); border-radius: 20px; cursor: pointer; font-size: 14px; }
+        @media (max-width: 768px) {
+            .time-slot { padding: 10px 18px; font-size: 14px; }
+        }
         .time-slot.selected { background: var(--blue-primary); color: var(--bg-main); }
 
         .service-select { width: 100%; padding: 10px; margin: 8px 0; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: var(--silver-main); font-size: 13px; }
@@ -207,12 +211,12 @@
         .btn-secondary { flex: 1; background: transparent; border: 1px solid var(--blue-steel); color: var(--silver-main); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
 
         .whatsapp-float { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
-        .whatsapp-float img { width: 50px; height: 50px; border-radius: 50%; }
+        .whatsapp-float img { width: 55px; height: 55px; border-radius: 50%; }
         @media (max-width: 768px) {
-            .whatsapp-float img { width: 45px; height: 45px; }
+            .whatsapp-float img { width: 50px; height: 50px; }
         }
 
-        .profile-avatar-large { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
+        .profile-avatar-large { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
 
         /* Menu responsivo - icone tres riscos na esquerda */
         .menu-toggle {
@@ -220,10 +224,62 @@
             background: transparent;
             border: none;
             color: var(--blue-primary);
-            font-size: 28px;
+            font-size: 32px;
             cursor: pointer;
             order: 0;
         }
+        @media (max-width: 768px) {
+            .menu-toggle { font-size: 32px; }
+        }
+        
+        /* Mobile user profile - estilo bolha grande */
+        .mobile-user-profile {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 25px 0;
+            border-bottom: 1px solid rgba(192, 214, 239, 0.2);
+            margin-bottom: 20px;
+        }
+        .mobile-user-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--blue-primary);
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .mobile-user-name {
+            color: var(--blue-light);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .mobile-logout-btn {
+            background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary));
+            color: var(--bg-main);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            width: 80%;
+        }
+        .mobile-admin-btn {
+            background: linear-gradient(135deg, #ff9800, #ff5722);
+            color: #000;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            width: 80%;
+            margin-top: 12px;
+        }
+
         @media (max-width: 768px) {
             .menu-toggle { display: block; }
             .header-row { justify-content: space-between; }
@@ -233,6 +289,19 @@
             .header-center { display: none; width: 100%; order: 4; }
             .header-center.active { display: block; }
             .main-menu { flex-direction: column; align-items: center; padding: 15px 0; gap: 15px; }
+            .main-menu a { font-size: 16px; }
+            
+            /* Esconder user profile do desktop no mobile */
+            .user-profile { display: none !important; }
+            .btn-admin { display: none !important; }
+            
+            /* Mostrar mobile user profile quando logado */
+            .mobile-user-profile.show { display: flex; }
+        }
+
+        /* Desktop user profile */
+        @media (min-width: 769px) {
+            .mobile-user-profile { display: none !important; }
         }
 
         /* Modal de recuperacao de senha - fundo escuro igual ao login */
@@ -271,6 +340,13 @@
                             <span class="header-title">BARBEARIA TRENCHES</span>
                         </div>
                         <div class="header-center hidden-for-sm" id="menuMobile">
+                            <!-- Mobile user profile (bolha grande) -->
+                            <div id="mobileUserProfile" class="mobile-user-profile">
+                                <img id="mobileUserAvatar" src="images/avatar.png" alt="Avatar" class="mobile-user-avatar" onclick="openProfileModal()">
+                                <span id="mobileUserName" class="mobile-user-name"></span>
+                                <button id="mobileLogoutBtn" class="mobile-logout-btn">SAIR</button>
+                                <button id="mobileAdminBtn" class="mobile-admin-btn" style="display: none;">GESTOR</button>
+                            </div>
                             <ul class="main-menu">
                                 <li><a href="#home">Home</a></li>
                                 <li><a href="#aboutus">Sobre</a></li>
@@ -346,7 +422,7 @@
         </div>
 
         <div id="profileModal" class="modal">
-            <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-content" style="max-width: 340px;">
                 <span class="close" onclick="document.getElementById('profileModal').style.display='none'">&times;</span>
                 <h3 style="text-align: center;">Minha Foto</h3>
                 <img id="profileAvatar" src="images/avatar.png" alt="Avatar" class="profile-avatar-large" onclick="document.getElementById('avatarUpload').click()">
@@ -498,6 +574,7 @@
                     currentUser = data.user;
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     updateUIForLoggedInUser(currentUser);
+                    updateMobileUIForLoggedInUser(currentUser);
                     showMessage('Bem-vindo, ' + currentUser.name + '!');
                     document.getElementById('authModal').style.display = 'none';
                     document.getElementById('loginForm').reset();
@@ -543,6 +620,7 @@
             currentUser = null;
             localStorage.removeItem('currentUser');
             updateUIForLoggedOutUser();
+            updateMobileUIForLoggedOutUser();
             showMessage('Você saiu da sua conta.');
         }
         
@@ -563,6 +641,31 @@
             }
         }
         
+        function updateMobileUIForLoggedInUser(user) {
+            const mobileProfile = document.getElementById('mobileUserProfile');
+            const mobileUserName = document.getElementById('mobileUserName');
+            const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+            const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+            
+            if (mobileProfile) {
+                mobileProfile.classList.add('show');
+                if (mobileUserName) mobileUserName.textContent = user.name.split(' ')[0];
+                if (mobileUserAvatar) mobileUserAvatar.src = user.avatar || 'images/avatar.png';
+                if (mobileAdminBtn && user.isAdmin) {
+                    mobileAdminBtn.style.display = 'block';
+                } else if (mobileAdminBtn) {
+                    mobileAdminBtn.style.display = 'none';
+                }
+            }
+        }
+        
+        function updateMobileUIForLoggedOutUser() {
+            const mobileProfile = document.getElementById('mobileUserProfile');
+            if (mobileProfile) {
+                mobileProfile.classList.remove('show');
+            }
+        }
+        
         function updateUIForLoggedOutUser() {
             const loginBtn = document.getElementById('loginBtn');
             const userInfo = document.getElementById('userInfo');
@@ -575,6 +678,7 @@
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
                 updateUIForLoggedInUser(currentUser);
+                updateMobileUIForLoggedInUser(currentUser);
             }
         }
         
@@ -773,7 +877,9 @@
         
         function updateHeaderAvatar() {
             const ua = document.getElementById('userAvatar');
+            const mua = document.getElementById('mobileUserAvatar');
             if (ua) ua.src = localStorage.getItem('isAdmin') === 'true' ? currentAdminAvatar : currentUserAvatar;
+            if (mua) mua.src = localStorage.getItem('isAdmin') === 'true' ? currentAdminAvatar : currentUserAvatar;
         }
         
         function openBookingModal(s) {
@@ -804,6 +910,7 @@
             loadCurrentUser();
             initForgotPassword();
             
+            // Desktop buttons
             document.getElementById('loginBtn').addEventListener('click', () => {
                 document.getElementById('authModal').style.display = 'block';
             });
@@ -811,6 +918,22 @@
             document.getElementById('logoutBtn').addEventListener('click', () => {
                 logout();
             });
+            
+            // Mobile buttons
+            const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+            if (mobileLogoutBtn) {
+                mobileLogoutBtn.addEventListener('click', () => {
+                    logout();
+                    document.getElementById('menuMobile').classList.remove('active');
+                });
+            }
+            
+            const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+            if (mobileAdminBtn) {
+                mobileAdminBtn.addEventListener('click', () => {
+                    window.location.href = '/admin.html';
+                });
+            }
             
             document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -892,8 +1015,10 @@
                             if (ia) { currentAdminAvatar = na; localStorage.setItem('currentAdminAvatar', na); }
                             else { currentUserAvatar = na; localStorage.setItem('currentUserAvatar', na); }
                             const ua = document.getElementById('userAvatar');
+                            const mua = document.getElementById('mobileUserAvatar');
                             const pa = document.getElementById('profileAvatar');
                             if (ua) ua.src = na;
+                            if (mua) mua.src = na;
                             if (pa) pa.src = na;
                             showMessage('Foto atualizada!');
                             document.getElementById('profileModal').style.display = 'none';
@@ -909,8 +1034,10 @@
                     if (ia) { currentAdminAvatar = d; localStorage.setItem('currentAdminAvatar', d); }
                     else { currentUserAvatar = d; localStorage.setItem('currentUserAvatar', d); }
                     const ua = document.getElementById('userAvatar');
+                    const mua = document.getElementById('mobileUserAvatar');
                     const pa = document.getElementById('profileAvatar');
                     if (ua) ua.src = d;
+                    if (mua) mua.src = d;
                     if (pa) pa.src = d;
                     showMessage('Foto removida');
                     document.getElementById('profileModal').style.display = 'none';
