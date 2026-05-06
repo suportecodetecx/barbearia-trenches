@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Barbearia Trenches - Cabelo e Barba</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Oswald:wght@200;300;400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #0a0f1c;
+            --bg-alt: #0f172a;
+            --blue-primary: #c0d6ef;
+            --blue-steel: #1e2a45;
+            --blue-light: #7fa6d9;
+            --silver-main: #cbd5e1;
+            --silver-soft: #94a3b8;
+            --silver-light: #f1f5f9;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-main);
+            background-image: url('images/camufla.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: var(--silver-main);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        .header-wrapper {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            background: rgba(10, 15, 28, 0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(192, 214, 239, 0.2);
+        }
+        .header-main { padding: 10px 0; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .header-logo { height: 40px; width: auto; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.4)); }
+        .header-title { font-size: 18px; color: var(--blue-primary); font-weight: 700; letter-spacing: 1px; }
+        .main-menu { display: flex; list-style: none; gap: 30px; }
+        .main-menu a { color: var(--silver-main); text-decoration: none; font-weight: 500; transition: color 0.3s; }
+        .main-menu a:hover { color: var(--blue-primary); }
+        .user-area { display: flex; align-items: center; gap: 15px; }
+        .btn-login { background: transparent; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .btn-login:hover { box-shadow: 0 0 15px var(--blue-primary); background: rgba(192, 214, 239, 0.1); }
+        .user-profile { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 30px; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue-primary); cursor: pointer; }
+        #userName { color: var(--blue-light); font-size: 13px; font-weight: 500; }
+        .btn-logout { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: var(--bg-main); border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-admin { background: linear-gradient(135deg, #ff9800, #ff5722); color: #000; border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+        .hero-section { height: 100vh; background: url('images/hero-bg.jpg'); background-size: cover; background-position: center 45%; background-attachment: fixed; display: flex; align-items: center; justify-content: center; }
+        .hero-scroll { color: var(--blue-primary); font-size: 40px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(20px); } }
+
+        .section-about, .section-services, .section-hours { padding: 80px 0; }
+        .section-title { text-align: center; color: var(--blue-primary); font-size: 36px; margin-bottom: 50px; letter-spacing: 2px; }
+        .about-text { text-align: center; max-width: 800px; margin: 0 auto; }
+
+        .main-barber-card {
+            display: inline-block; text-align: center; background: rgba(16, 24, 39, 0.85);
+            backdrop-filter: blur(10px); padding: 30px 25px; border-radius: 20px;
+            margin-bottom: 0; border: 1px solid rgba(192, 214, 239, 0.3);
+            transition: all 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .main-barber-card:hover { transform: translateY(-5px); border-color: var(--blue-primary); }
+        .main-barber-photo { width: 180px; height: 180px; border-radius: 50%; object-fit: cover; border: 3px solid var(--blue-primary); margin-bottom: 15px; }
+        .main-barber-name { color: var(--blue-light); font-size: 22px; font-weight: 700; }
+        .main-barber-role { color: var(--silver-soft); font-size: 13px; }
+
+        .barbeiros-equipe-grid {
+            display: flex; justify-content: center; gap: 25px; flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .btn-primary {
+            display: inline-block; background: linear-gradient(135deg, var(--blue-primary), #0077ff);
+            color: #000; padding: 12px 30px; border-radius: 30px; text-decoration: none;
+            font-weight: bold; margin-top: 20px; cursor: pointer;
+        }
+        .btn-primary:hover { box-shadow: 0 0 25px var(--blue-primary); }
+
+        .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+        .service-item { text-align: center; cursor: pointer; padding: 20px; border-radius: 15px; background: rgba(16, 24, 39, 0.75); transition: all 0.3s; }
+        .service-item:hover { transform: translateY(-10px); background: rgba(30, 42, 69, 0.9); }
+        .service-item img { max-width: 120px; border-radius: 20px; filter: drop-shadow(0 0 8px rgba(192, 214, 239, 0.3)); }
+
+        .hours-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .hour-item { text-align: center; background: rgba(30, 42, 69, 0.85); padding: 20px 15px; border-radius: 20px; min-width: 100px; border: 1px solid rgba(192, 214, 239, 0.25); }
+        .hour-item h3 { color: var(--blue-primary); font-size: 18px; font-weight: 600; }
+        .hour-item p { color: var(--silver-soft); font-size: 14px; }
+
+        .bottom-section { display: grid; grid-template-columns: repeat(3, 1fr); background: rgba(11, 18, 32, 0.95); border-top: 1px solid rgba(192, 214, 239, 0.15); }
+        .col-precos, .col-info, .col-contato { padding: 35px 25px; text-align: center; }
+        .col-precos { background: rgba(23, 34, 53, 0.85); border-right: 1px solid rgba(192, 214, 239, 0.15); }
+        .col-info { background: rgba(11, 18, 32, 0.85); border-right: 1px solid rgba(192, 214, 239, 0.15); }
+        .col-contato { background: rgba(23, 34, 53, 0.85); }
+        .col-precos h3, .col-info h3, .col-contato h3 { color: var(--blue-primary); font-size: 18px; margin-bottom: 20px; }
+
+        #dynamicPrices { margin-bottom: 15px; }
+        .price-item {
+            display: flex; justify-content: space-between; align-items: baseline;
+            margin-bottom: 10px; padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(192, 214, 239, 0.2); flex-wrap: wrap;
+        }
+        .price-name { color: var(--silver-main); font-size: 14px; }
+        .price-duration { color: var(--silver-soft); font-size: 11px; margin-left: 4px; }
+        .price-value { color: var(--blue-primary); font-size: 18px; font-weight: 700; }
+
+        .reservar-btn { display: inline-block; background: transparent; border: 2px solid var(--blue-primary); color: var(--blue-primary); padding: 8px 25px; margin-top: 15px; font-weight: 600; text-decoration: none; cursor: pointer; }
+        .reservar-btn:hover { background: var(--blue-primary); color: var(--bg-main); }
+
+        .logo-small { max-width: 100px; margin-bottom: 15px; }
+        .instagram-handle { color: var(--blue-primary); text-decoration: none; font-size: 14px; }
+        .address-text { color: var(--silver-soft); font-size: 13px; margin-top: 15px; }
+        .whatsapp-number { color: var(--blue-primary); font-size: 20px; font-weight: 700; text-decoration: none; }
+        .map-small { margin-top: 15px; border-radius: 8px; overflow: hidden; }
+        .map-small iframe { width: 100%; height: 150px; border: none; }
+
+        .copyright-bar { background: rgba(11, 18, 32, 0.95); text-align: center; padding: 12px; }
+        .copyright-bar p { font-size: 11px; color: var(--silver-soft); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; backdrop-filter: blur(8px); overflow-y: auto; }
+        .modal-content { position: relative; background: rgba(15, 23, 42, 0.98); margin: 20px auto; padding: 20px 18px; width: 92%; max-width: 440px; border-radius: 16px; border: 1px solid rgba(192, 214, 239, 0.3); }
+        #bookingModal .modal-content { max-height: 90vh; overflow-y: auto; }
+        .close { position: absolute; right: 12px; top: 10px; font-size: 22px; cursor: pointer; color: var(--silver-soft); }
+        .auth-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+        .tab-btn { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--blue-steel); color: var(--silver-main); cursor: pointer; border-radius: 8px; font-weight: 600; }
+        .tab-btn.active { background: var(--blue-primary); color: #000; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .auth-form h3 { text-align: center; margin-bottom: 15px; color: var(--blue-light); }
+        .auth-form input { width: 100%; padding: 11px 14px; margin-bottom: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: #fff; }
+        .btn-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--blue-primary), #0077ff); border: none; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .forgot-password { text-align: center; margin-top: 10px; }
+        .forgot-password a { color: var(--blue-light); font-size: 12px; text-decoration: none; cursor: pointer; }
+        .forgot-password a:hover { text-decoration: underline; }
+
+        .calendar-container { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+        .calendar-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-nav-btn { background: var(--blue-steel); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: white; }
+        #currentMonth { font-size: 16px; font-weight: 600; color: var(--blue-light); flex: 1; text-align: center; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+        .calendar-weekday { text-align: center; font-weight: 600; padding: 5px 2px; color: var(--blue-primary); font-size: 10px; }
+        .calendar-day { text-align: center; padding: 8px 2px; border-radius: 6px; background: rgba(255,255,255,0.05); font-size: 13px; cursor: default; }
+        .calendar-day.available { background: rgba(192, 214, 239, 0.22); cursor: pointer; font-weight: 600; }
+        .calendar-day.available:hover { background: var(--blue-primary); color: var(--bg-main); }
+        .calendar-day.unavailable { opacity: 0.4; }
+        .calendar-day.today { border: 2px solid var(--blue-primary); }
+        .calendar-day.selected { background: var(--blue-primary); color: var(--bg-main); }
+
+        .time-section { background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+        .time-slots { display: flex; flex-wrap: wrap; gap: 6px; padding: 3px; justify-content: center; max-height: 140px; overflow-y: auto; }
+        .time-slot { padding: 7px 14px; background: rgba(192, 214, 239, 0.15); border: 1px solid var(--blue-steel); color: var(--silver-main); border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .time-slot.selected { background: var(--blue-primary); color: var(--bg-main); }
+        .time-slot.disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .service-select { width: 100%; padding: 11px 14px; margin: 8px 0; background: rgba(0,0,0,0.4); border: 1px solid var(--blue-steel); border-radius: 8px; color: var(--silver-main); font-size: 14px; }
+        .booking-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-secondary { flex: 1; background: transparent; border: 1px solid var(--blue-steel); color: var(--silver-main); padding: 11px 8px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+        .whatsapp-float { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .whatsapp-float img { width: 55px; height: 55px; border-radius: 50%; }
+
+        .profile-avatar-large { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 20px; display: block; border: 3px solid var(--blue-primary); }
+
+        @media (max-width: 768px) {
+            .services-grid { grid-template-columns: repeat(2, 1fr); }
+            .bottom-section { grid-template-columns: 1fr; }
+            .col-precos, .col-info { border-right: none; border-bottom: 1px solid rgba(192, 214, 239, 0.15); }
+            .main-menu { display: none; }
+            .main-barber-photo { width: 140px; height: 140px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-wrapper">
+        <div class="header-wrapper">
+            <header>
+                <div class="header-main">
+                    <div class="header-row container">
+                        <div class="header-brand">
+                            <img src="images/logoca.png" alt="Logo" class="header-logo">
+                            <span class="header-title">BARBEARIA TRENCHES</span>
+                        </div>
+                        <div class="header-center hidden-for-sm">
+                            <ul class="main-menu">
+                                <li><a href="#home">Home</a></li>
+                                <li><a href="#aboutus">Sobre</a></li>
+                                <li><a href="#ourservices">Serviços</a></li>
+                                <li><a href="#hours">Atendimento</a></li>
+                                <li><a href="#" id="menuReservasBtn">Reservas</a></li>
+                            </ul>
+                        </div>
+                        <div class="header-right">
+                            <div class="user-area">
+                                <button id="loginBtn" class="btn-login">ENTRAR</button>
+                                <div id="userInfo" style="display: none;">
+                                    <div class="user-profile">
+                                        <img id="userAvatar" src="images/avatar.png" alt="Avatar" class="user-avatar" onclick="openProfileModal()">
+                                        <span id="userName"></span>
+                                        <button id="logoutBtn" class="btn-logout">SAIR</button>
+                                    </div>
+                                    <button id="adminPanelBtn" class="btn-admin" style="display: none;">GESTOR</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        </div>
+
+        <a href="https://wa.me/5511948484457" target="_blank" class="whatsapp-float">
+            <img src="images/whatsapp.png" alt="WhatsApp">
+        </a>
+
+        <div id="authModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="document.getElementById('authModal').style.display='none'">&times;</span>
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login">ENTRAR</button>
+                    <button class="tab-btn" data-tab="register">CADASTRAR</button>
+                </div>
+                <form id="loginForm" class="auth-form active">
+                    <h3>Acesse sua conta</h3>
+                    <input type="tel" id="loginPhone" placeholder="Celular" required>
+                    <input type="password" id="loginPassword" placeholder="Senha" required>
+                    <button type="submit" class="btn-submit">ENTRAR</button>
+                    <div class="forgot-password">
+                        <a id="forgotPasswordBtn">Esqueci minha senha</a>
+                    </div>
+                </form>
+                <form id="registerForm" class="auth-form">
+                    <h3>Crie sua conta</h3>
+                    <input type="text" id="regName" placeholder="Nome completo" required>
+                    <input type="tel" id="regPhone" placeholder="Celular" required>
+                    <input type="password" id="regPassword" placeholder="Senha" required>
+                    <input type="password" id="regConfirm" placeholder="Confirmar senha" required>
+                    <button type="submit" class="btn-submit">CADASTRAR</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="forgotPasswordModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="document.getElementById('forgotPasswordModal').style.display='none'">&times;</span>
+                <h3 style="text-align: center; margin-bottom: 15px;">Recuperar Senha</h3>
+                <form id="forgotPasswordForm">
+                    <input type="tel" id="resetPhone" placeholder="Digite seu celular" required>
+                    <button type="submit" class="btn-submit">PROCURAR CONTA</button>
+                </form>
+                <div id="resetUserInfo" style="display: none; margin-top: 15px;">
+                    <p id="resetUserName" style="text-align: center; margin-bottom: 10px;"></p>
+                    <input type="password" id="newPassword" placeholder="Nova senha" required>
+                    <input type="password" id="confirmNewPassword" placeholder="Confirmar nova senha" required>
+                    <button id="resetPasswordBtn" class="btn-submit">ALTERAR SENHA</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="profileModal" class="modal">
+            <div class="modal-content" style="max-width: 320px;">
+                <span class="close" onclick="document.getElementById('profileModal').style.display='none'">&times;</span>
+                <h3 style="text-align: center;">Minha Foto</h3>
+                <img id="profileAvatar" src="images/avatar.png" alt="Avatar" class="profile-avatar-large" onclick="document.getElementById('avatarUpload').click()">
+                <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                <button id="changePhotoBtn" class="btn-submit" style="margin-bottom: 10px;">ALTERAR FOTO</button>
+                <button id="removePhotoBtn" class="btn-login" style="width: 100%;">REMOVER FOTO</button>
+            </div>
+        </div>
+
+        <div id="bookingModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="document.getElementById('bookingModal').style.display='none'">&times;</span>
+                <h3 style="text-align: center; margin-bottom: 12px; color: var(--blue-primary); font-size: 20px;">Agendar Horario</h3>
+                <div class="calendar-container">
+                    <div class="calendar-header-row">
+                        <button id="prevMonth" class="calendar-nav-btn"><i class="fas fa-chevron-left"></i></button>
+                        <span id="currentMonth"></span>
+                        <button id="nextMonth" class="calendar-nav-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                </div>
+                <div class="time-section">
+                    <h4>Horários disponiveis</h4>
+                    <div id="timeSlots" class="time-slots"></div>
+                </div>
+                <select id="bookingService" class="service-select">
+                    <option value="Cabelo">Cabelo - R$40</option>
+                    <option value="Barba">Barba - R$40</option>
+                    <option value="Cabelo e Barba">Cabelo e Barba - R$80</option>
+                    <option value="Pacote Trenches">Pacote Trenches - R$110</option>
+                </select>
+                <div class="booking-buttons">
+                    <button id="myBookingsBtn" class="btn-secondary">Minha Agenda</button>
+                    <button id="confirmBookingBtn" class="btn-submit" disabled>Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toastModal" class="modal">
+            <div class="modal-content" style="text-align: center; max-width: 300px;">
+                <p id="toastMessage"></p>
+                <button onclick="closeToast()" class="btn-submit" style="margin-top: 12px;">OK</button>
+            </div>
+        </div>
+
+        <div id="home" class="hero-section">
+            <div class="hero-content">
+                <a href="#aboutus" class="hero-scroll"><i class="fas fa-chevron-down"></i></a>
+            </div>
+        </div>
+
+        <section id="aboutus" class="section-about">
+            <div class="container">
+                <div class="about-text">
+                    <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
+                    <h2>SOBRE A BARBEARIA TRENCHES</h2>
+                    <p>Ambiente sofisticado, aconchegante e acolhedor. Equipe de profissionais qualificados.</p>
+                    <p>Localizada em bairro de facil acesso com estacionamento proprio.</p>
+                    <a href="#" class="btn-primary" id="agendarBtn">Agende um Horario</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="ourservices" class="section-services">
+            <div class="container">
+                <h2 class="section-title">SERVIÇOS</h2>
+                <div class="services-grid">
+                    <div class="service-item" data-service="Cabelo"><img src="images/corte.png" alt="Cabelo"><h3>Cabelo</h3></div>
+                    <div class="service-item" data-service="Barba"><img src="images/barba.png" alt="Barba"><h3>Barba</h3></div>
+                    <div class="service-item" data-service="Cabelo e Barba"><img src="images/completo.png" alt="Cabelo e Barba"><h3>Cabelo e Barba</h3></div>
+                    <div class="service-item" data-service="Pacote Trenches"><img src="images/pacote.png" alt="Pacote"><h3>Pacote</h3></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="hours" class="section-hours">
+            <div class="container">
+                <h2 class="section-title">HORÁRIOS</h2>
+                <div class="hours-grid">
+                    <div class="hour-item"><h3>SEG</h3><p id="hourMonDisplay">FECHADO</p></div>
+                    <div class="hour-item"><h3>TER</h3><p id="hourTueDisplay">09h - 20h</p></div>
+                    <div class="hour-item"><h3>QUA</h3><p id="hourWedDisplay">09h - 20h</p></div>
+                    <div class="hour-item"><h3>QUI</h3><p id="hourThuDisplay">09h - 21h</p></div>
+                    <div class="hour-item"><h3>SEX</h3><p id="hourFriDisplay">09h - 21h</p></div>
+                    <div class="hour-item"><h3>SAB</h3><p id="hourSatDisplay">09h - 18h</p></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="bottom-section">
+            <div class="col-precos">
+                <h3>PRECOS</h3>
+                <div id="dynamicPrices"></div>
+                <a href="#" class="reservar-btn" id="footerReservarBtn">Reservar</a>
+            </div>
+            <div class="col-info">
+                <img src="images/logoca.png" alt="Logo" class="logo-small">
+                <div><a href="https://www.instagram.com/" target="_blank" class="instagram-handle" id="instagramHandle">@barbeariatrenches</a></div>
+                <div class="address-text" id="contactAddress"><strong>Endereco</strong><br>Av. Maj. Melo, 35<br>Vila Nova Aparecida<br>Mogi das Cruzes - SP</div>
+            </div>
+            <div class="col-contato">
+                <h3>CONTATO</h3>
+                <div><a href="#" class="whatsapp-number" id="contactPhone">(11) 94848-4457</a></div>
+                <div class="map-small"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.8315312225436!2d-46.20410648502267!3d-23.5385609846942!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94cdd86a8c4f5e1f%3A0xbfed81783d31c9b1!2sAv.%20Maj.%20Melo%2C%2035%20-%20Vila%20Nova%20Aparecida%2C%20Mogi%20das%20Cruzes%20-%20SP%2C%2008830-200!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr" style="width:100%; height:150px; border:0;" allowfullscreen="" loading="lazy"></iframe></div>
+            </div>
+        </div>
+        <div class="copyright-bar"><p>CodeTecx | 2026 CodeTecx Solucoes | v2.5</p></div>
+    </div>
+
+    <script src="js/calendar.js"></script>
+    
+    <script>
+        let currentUser = null;
+        
+        function showMessage(m) {
+            const t = document.getElementById('toastModal');
+            const tm = document.getElementById('toastMessage');
+            if (t && tm) {
+                tm.textContent = m;
+                t.style.display = 'block';
+                setTimeout(() => { t.style.display = 'none'; }, 3000);
+            } else {
+                alert(m);
+            }
+        }
+        
+        function closeToast() {
+            const t = document.getElementById('toastModal');
+            if (t) t.style.display = 'none';
+        }
+        window.alert = showMessage;
+        
+        async function login(phone, password) {
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = data.user;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateUIForLoggedInUser(currentUser);
+                    showMessage('Bem-vindo, ' + currentUser.name + '!');
+                    document.getElementById('authModal').style.display = 'none';
+                    document.getElementById('loginForm').reset();
+                    return true;
+                } else {
+                    showMessage(data.error || 'Erro ao fazer login');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Erro no login:', error);
+                showMessage('Erro de conexao com o servidor');
+                return false;
+            }
+        }
+        
+        async function register(name, phone, password) {
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Cadastro realizado! Faca login.');
+                    document.getElementById('registerForm').reset();
+                    document.querySelector('.tab-btn[data-tab="login"]').click();
+                    return true;
+                } else {
+                    showMessage(data.error || 'Erro ao cadastrar');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Erro no cadastro:', error);
+                showMessage('Erro de conexao com o servidor');
+                return false;
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUIForLoggedOutUser();
+            showMessage('Voce saiu da sua conta.');
+        }
+        
+        function updateUIForLoggedInUser(user) {
+            const loginBtn = document.getElementById('loginBtn');
+            const userInfo = document.getElementById('userInfo');
+            const userName = document.getElementById('userName');
+            const adminPanelBtn = document.getElementById('adminPanelBtn');
+            
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (userInfo) userInfo.style.display = 'flex';
+            if (userName) userName.textContent = user.name.split(' ')[0];
+            
+            if (adminPanelBtn && user.isAdmin) {
+                adminPanelBtn.style.display = 'block';
+            } else if (adminPanelBtn) {
+                adminPanelBtn.style.display = 'none';
+            }
+        }
+        
+        function updateUIForLoggedOutUser() {
+            const loginBtn = document.getElementById('loginBtn');
+            const userInfo = document.getElementById('userInfo');
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (userInfo) userInfo.style.display = 'none';
+        }
+        
+        function loadCurrentUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateUIForLoggedInUser(currentUser);
+            }
+        }
+        
+        async function findUserByPhoneAPI(telefone) {
+            try {
+                const response = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'find', telefone: telefone })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Erro ao buscar usuario:', error);
+                return { success: false, message: 'Erro de conexao' };
+            }
+        }
+        
+        async function resetPasswordAPI(telefone, novaSenha) {
+            try {
+                const response = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'reset', telefone: telefone, novaSenha: novaSenha })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Erro ao resetar senha:', error);
+                return { success: false, message: 'Erro de conexao' };
+            }
+        }
+        
+        function initForgotPassword() {
+            const forgotBtn = document.getElementById('forgotPasswordBtn');
+            if (!forgotBtn) return;
+            
+            forgotBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('authModal').style.display = 'none';
+                document.getElementById('forgotPasswordModal').style.display = 'block';
+                document.getElementById('resetPhone').value = '';
+                document.getElementById('resetUserInfo').style.display = 'none';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+            });
+            
+            document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const telefone = document.getElementById('resetPhone').value.trim();
+                if (!telefone) { showMessage('Digite seu numero de celular'); return; }
+                
+                showMessage('Buscando conta...');
+                const result = await findUserByPhoneAPI(telefone);
+                
+                if (result.success) {
+                    document.getElementById('resetUserName').innerHTML = 'Usuario encontrado: <strong>' + result.nome + '</strong>';
+                    document.getElementById('resetUserInfo').style.display = 'block';
+                    showMessage('Conta encontrada! Digite sua nova senha.');
+                } else {
+                    showMessage(result.message);
+                    document.getElementById('resetUserInfo').style.display = 'none';
+                }
+            });
+            
+            document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+                const telefone = document.getElementById('resetPhone').value.trim();
+                const novaSenha = document.getElementById('newPassword').value;
+                const confirmarSenha = document.getElementById('confirmNewPassword').value;
+                
+                if (!novaSenha || novaSenha.length < 4) { showMessage('A senha deve ter pelo menos 4 caracteres'); return; }
+                if (novaSenha !== confirmarSenha) { showMessage('As senhas nao conferem'); return; }
+                
+                showMessage('Alterando senha...');
+                const result = await resetPasswordAPI(telefone, novaSenha);
+                
+                if (result.success) {
+                    showMessage('Senha alterada com sucesso! Faca login com sua nova senha.');
+                    document.getElementById('forgotPasswordModal').style.display = 'none';
+                    document.getElementById('resetPhone').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmNewPassword').value = '';
+                    document.getElementById('resetUserInfo').style.display = 'none';
+                    document.getElementById('authModal').style.display = 'block';
+                } else {
+                    showMessage(result.message);
+                }
+            });
+            
+            const forgotModal = document.getElementById('forgotPasswordModal');
+            if (forgotModal) {
+                const closeBtn = forgotModal.querySelector('.close');
+                if (closeBtn) closeBtn.addEventListener('click', () => { forgotModal.style.display = 'none'; });
+            }
+        }
+        
+        function loadAllBarbeiros() {
+            const barbeiros = JSON.parse(localStorage.getItem('barbeiros') || '[]');
+            const ec = document.getElementById('equipeBarbeiros');
+            if (ec) {
+                if (barbeiros.length > 0) {
+                    ec.innerHTML = barbeiros.map(b => `
+                        <div class="main-barber-card">
+                            <img src="${b.photo || 'images/avatar.png'}" alt="${b.name}" class="main-barber-photo" onerror="this.src='images/avatar.png'">
+                            <div class="main-barber-name">${b.name}</div>
+                            <div class="main-barber-role">BARBEIRO PROFISSIONAL</div>
+                        </div>
+                    `).join('');
+                } else {
+                    ec.innerHTML = '';
+                }
+            }
+        }
+        
+        function loadDynamicPrices() {
+            const saved = localStorage.getItem('adminSettings');
+            const container = document.getElementById('dynamicPrices');
+            if (!container) return;
+            
+            let services = [];
+            if (saved) {
+                try {
+                    const s = JSON.parse(saved);
+                    if (s.services && s.services.length > 0) services = s.services;
+                } catch(e) {}
+            }
+            if (services.length === 0) {
+                services = [
+                    { name: 'Cabelo', price: 40, duration: 45 },
+                    { name: 'Barba', price: 40, duration: 30 },
+                    { name: 'Cabelo e Barba', price: 80, duration: 75 },
+                    { name: 'Pacote Trenches', price: 110, duration: 90 }
+                ];
+            }
+            
+            container.innerHTML = services.map(sv => {
+                const durMin = sv.duration || 45;
+                let durText = '';
+                if (durMin < 60) durText = '(' + durMin + ' min)';
+                else {
+                    const h = Math.floor(durMin / 60);
+                    const m = durMin % 60;
+                    durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
+                }
+                return '<div class="price-item"><div><span class="price-name">' + sv.name + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
+            }).join('');
+        }
+        
+        function loadAllSettings() {
+            const s = localStorage.getItem('adminSettings');
+            if (s) {
+                try {
+                    const cfg = JSON.parse(s);
+                    if (cfg.hours) {
+                        const hm = { mon: 'hourMonDisplay', tue: 'hourTueDisplay', wed: 'hourWedDisplay', thu: 'hourThuDisplay', fri: 'hourFriDisplay', sat: 'hourSatDisplay' };
+                        for (const [k, v] of Object.entries(hm)) {
+                            const el = document.getElementById(v);
+                            if (el) {
+                                const val = cfg.hours[k] || 'FECHADO';
+                                el.textContent = val.replace(':00', 'h').replace(' - ', 'h - ');
+                            }
+                        }
+                    }
+                    if (cfg.address) {
+                        const ca = document.getElementById('contactAddress');
+                        if (ca) ca.innerHTML = '<strong>Endereco</strong><br>' + cfg.address.replace(/\n/g, '<br>');
+                    }
+                    if (cfg.phone) {
+                        const cp = document.getElementById('contactPhone');
+                        if (cp) {
+                            cp.textContent = cfg.phone;
+                            cp.href = 'https://wa.me/55' + cfg.phone.replace(/\D/g, '');
+                        }
+                        const wf = document.querySelector('.whatsapp-float');
+                        if (wf) wf.href = 'https://wa.me/55' + cfg.phone.replace(/\D/g, '');
+                    }
+                    if (cfg.instagram) {
+                        const ih = document.getElementById('instagramHandle');
+                        if (ih) ih.textContent = cfg.instagram;
+                    }
+                } catch(e) {}
+            }
+            loadDynamicPrices();
+            loadAllBarbeiros();
+        }
+        
+        let currentUserAvatar = localStorage.getItem('currentUserAvatar') || 'images/avatar.png';
+        let currentAdminAvatar = localStorage.getItem('currentAdminAvatar') || 'images/avatar.png';
+        
+        function openProfileModal() {
+            const pa = document.getElementById('profileAvatar');
+            const pm = document.getElementById('profileModal');
+            if (pa && pm) {
+                pa.src = localStorage.getItem('isAdmin') === 'true' ? currentAdminAvatar : currentUserAvatar;
+                pm.style.display = 'block';
+            }
+        }
+        
+        function updateHeaderAvatar() {
+            const ua = document.getElementById('userAvatar');
+            if (ua) ua.src = localStorage.getItem('isAdmin') === 'true' ? currentAdminAvatar : currentUserAvatar;
+        }
+        
+        function openBookingModal(s) {
+            if (!currentUser) {
+                showMessage('Faca login para agendar');
+                document.getElementById('authModal').style.display = 'block';
+                return;
+            }
+            if (s) {
+                const sel = document.getElementById('bookingService');
+                if (sel) {
+                    for (let i = 0; i < sel.options.length; i++) {
+                        if (sel.options[i].value === s) {
+                            sel.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (typeof initCalendar === 'function') {
+                initCalendar().catch(e => console.error('Erro ao inicializar calendario:', e));
+            }
+            const bm = document.getElementById('bookingModal');
+            if (bm) bm.style.display = 'block';
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentUser();
+            initForgotPassword();
+            
+            document.getElementById('loginBtn').addEventListener('click', () => {
+                document.getElementById('authModal').style.display = 'block';
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                logout();
+            });
+            
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const phone = document.getElementById('loginPhone').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                await login(phone, password);
+            });
+            
+            document.getElementById('registerForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('regName').value.trim();
+                const phone = document.getElementById('regPhone').value.trim();
+                const password = document.getElementById('regPassword').value;
+                const confirm = document.getElementById('regConfirm').value;
+                
+                if (!name || !phone || !password) { showMessage('Preencha todos os campos!'); return; }
+                if (password !== confirm) { showMessage('As senhas nao conferem!'); return; }
+                if (password.length < 4) { showMessage('A senha deve ter pelo menos 4 caracteres!'); return; }
+                
+                await register(name, phone, password);
+            });
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tab = this.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+                    document.getElementById(tab + 'Form').classList.add('active');
+                });
+            });
+            
+            const ab = document.getElementById('agendarBtn');
+            const fb = document.getElementById('footerReservarBtn');
+            const mb = document.getElementById('menuReservasBtn');
+            
+            if (ab) ab.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
+            if (fb) fb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
+            if (mb) mb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
+            
+            // Botao GESTOR - abrir admin.html
+            const adminBtn = document.getElementById('adminPanelBtn');
+            if (adminBtn) {
+                adminBtn.addEventListener('click', () => {
+                    window.location.href = '/admin.html';
+                });
+            }
+            
+            document.querySelectorAll('.service-item').forEach(i => {
+                i.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openBookingModal(i.getAttribute('data-service'));
+                });
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.close').forEach(cb => {
+                cb.addEventListener('click', function() {
+                    const m = this.closest('.modal');
+                    if (m) m.style.display = 'none';
+                });
+            });
+            
+            const cb = document.getElementById('changePhotoBtn');
+            const au = document.getElementById('avatarUpload');
+            const rb = document.getElementById('removePhotoBtn');
+            
+            if (cb) cb.addEventListener('click', () => { if (au) au.click(); });
+            if (au) {
+                au.addEventListener('change', function(e) {
+                    const f = e.target.files[0];
+                    if (f) {
+                        const r = new FileReader();
+                        r.onload = function(ev) {
+                            const ia = localStorage.getItem('isAdmin') === 'true';
+                            const na = ev.target.result;
+                            if (ia) { currentAdminAvatar = na; localStorage.setItem('currentAdminAvatar', na); }
+                            else { currentUserAvatar = na; localStorage.setItem('currentUserAvatar', na); }
+                            const ua = document.getElementById('userAvatar');
+                            const pa = document.getElementById('profileAvatar');
+                            if (ua) ua.src = na;
+                            if (pa) pa.src = na;
+                            showMessage('Foto atualizada!');
+                            document.getElementById('profileModal').style.display = 'none';
+                        };
+                        r.readAsDataURL(f);
+                    }
+                });
+            }
+            if (rb) {
+                rb.addEventListener('click', function() {
+                    const d = 'images/avatar.png';
+                    const ia = localStorage.getItem('isAdmin') === 'true';
+                    if (ia) { currentAdminAvatar = d; localStorage.setItem('currentAdminAvatar', d); }
+                    else { currentUserAvatar = d; localStorage.setItem('currentUserAvatar', d); }
+                    const ua = document.getElementById('userAvatar');
+                    const pa = document.getElementById('profileAvatar');
+                    if (ua) ua.src = d;
+                    if (pa) pa.src = d;
+                    showMessage('Foto removida');
+                    document.getElementById('profileModal').style.display = 'none';
+                });
+            }
+            updateHeaderAvatar();
+            
+            loadAllSettings();
+            setInterval(loadAllSettings, 5000);
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'barbeiros' || e.key === 'adminSettings') loadAllSettings();
+            });
+            
+            setTimeout(() => {
+                if (typeof initCalendar === 'function') {
+                    initCalendar();
+                }
+            }, 500);
+            
+            console.log('Barbearia Trenches - Sistema inicializado com MongoDB');
+            console.log('Admin: 11999999999 | Senha: admin123');
+        });
+        
+        window.openBookingModal = openBookingModal;
+        window.openProfileModal = openProfileModal;
+        window.closeToast = closeToast;
+        window.showMessage = showMessage;
+    </script>
+</body>
+</html>
