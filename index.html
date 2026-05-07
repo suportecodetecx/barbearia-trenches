@@ -346,7 +346,6 @@
                             <span class="header-title">BARBEARIA TRENCHES</span>
                         </div>
                         <div class="header-center hidden-for-sm" id="menuMobile">
-                            <!-- Mobile user profile (bolha grande) -->
                             <div id="mobileUserProfile" class="mobile-user-profile">
                                 <img id="mobileUserAvatar" src="images/avatar.png" alt="Avatar" class="mobile-user-avatar" onclick="openProfileModal()">
                                 <span id="mobileUserName" class="mobile-user-name"></span>
@@ -483,7 +482,6 @@
         <section id="aboutus" class="section-about">
             <div class="container">
                 <div class="about-text">
-                    <!-- BARBEIROS - VEM DO MONGODB (API) -->
                     <div class="barbeiros-section">
                         <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
                     </div>
@@ -545,10 +543,8 @@
     
     <script>
         let currentUser = null;
-        let barbeirosCache = null;
-        let isLoadingBarbeiros = false;
         
-        // Menu mobile - icone tres riscos
+        // Menu mobile
         const menuToggle = document.getElementById('menuToggle');
         const menuMobile = document.getElementById('menuMobile');
         
@@ -805,16 +801,25 @@
             }
         }
         
+        // FUNÇÃO PRINCIPAL PARA CARREGAR BARBEIROS - CORRIGIDA
         async function loadAllBarbeiros() {
             const ec = document.getElementById('equipeBarbeiros');
-            if (!ec) return;
-            if (isLoadingBarbeiros) return;
-            isLoadingBarbeiros = true;
+            if (!ec) {
+                console.log('Elemento equipeBarbeiros não encontrado');
+                return;
+            }
+            
+            console.log('Carregando barbeiros da API...');
+            ec.innerHTML = '<p>Carregando barbeiros...</p>';
+            
             try {
                 const response = await fetch('/api/barbers');
+                console.log('Resposta da API:', response.status);
+                
                 if (response.ok) {
                     const barbeiros = await response.json();
-                    barbeirosCache = barbeiros;
+                    console.log('Barbeiros carregados:', barbeiros.length);
+                    
                     if (barbeiros.length > 0) {
                         ec.innerHTML = barbeiros.map(b => `
                             <div class="main-barber-card">
@@ -824,21 +829,15 @@
                             </div>
                         `).join('');
                     } else {
-                        ec.innerHTML = '<p>Nenhum barbeiro cadastrado ainda.</p>';
+                        ec.innerHTML = '<p>Nenhum barbeiro cadastrado ainda. Acesse o painel Gestor para adicionar.</p>';
                     }
                 } else {
                     console.error('Erro ao buscar barbeiros:', response.status);
-                    if (barbeirosCache === null) {
-                        ec.innerHTML = '<p>Erro ao carregar barbeiros.</p>';
-                    }
+                    ec.innerHTML = '<p>Erro ao carregar barbeiros. Tente novamente mais tarde.</p>';
                 }
             } catch (error) {
                 console.error('Erro ao carregar barbeiros:', error);
-                if (barbeirosCache === null) {
-                    ec.innerHTML = '<p>Erro ao conectar com o servidor.</p>';
-                }
-            } finally {
-                isLoadingBarbeiros = false;
+                ec.innerHTML = '<p>Erro ao conectar com o servidor.</p>';
             }
         }
         
@@ -849,13 +848,11 @@
             return div.innerHTML;
         }
         
-        // Buscar configurações do MongoDB (global)
         async function loadGlobalSettings() {
             try {
                 const response = await fetch('/api/settings');
                 if (response.ok) {
                     const settings = await response.json();
-                    // Atualizar preços
                     if (settings.services && settings.services.length > 0) {
                         const container = document.getElementById('dynamicPrices');
                         if (container) {
@@ -872,7 +869,6 @@
                             }).join('');
                         }
                     }
-                    // Atualizar horários
                     if (settings.hours) {
                         const hm = { mon: 'hourMonDisplay', tue: 'hourTueDisplay', wed: 'hourWedDisplay', thu: 'hourThuDisplay', fri: 'hourFriDisplay', sat: 'hourSatDisplay' };
                         for (const [k, v] of Object.entries(hm)) {
@@ -883,7 +879,6 @@
                             }
                         }
                     }
-                    // Atualizar contato
                     if (settings.phone) {
                         const cp = document.getElementById('contactPhone');
                         if (cp) {
@@ -904,7 +899,6 @@
                 }
             } catch (error) {
                 console.error('Erro ao carregar configurações globais:', error);
-                // Fallback para localStorage
                 loadLocalSettings();
             }
         }
@@ -1141,8 +1135,9 @@
             }
             updateHeaderAvatar();
             
-            // Carregar configurações globais
+            // Carregar configurações e barbeiros
             loadGlobalSettings();
+            loadAllBarbeiros(); // Chamada direta para carregar barbeiros
             
             setTimeout(() => {
                 if (typeof initCalendar === 'function') {
