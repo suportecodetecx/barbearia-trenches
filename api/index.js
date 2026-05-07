@@ -5,6 +5,7 @@ const connectDB = require('./connect');
 const User = require('./models/User');
 const Booking = require('./models/Booking');
 const Barber = require('./models/Barber');
+const Setting = require('./models/Setting');
 const path = require('path');
 
 const app = express();
@@ -31,10 +32,73 @@ async function ensureConnection() {
     }
 }
 
-// Rota de teste
-app.get('/api', async (req, res) => {
-    await ensureConnection();
-    res.json({ message: 'API da Barbearia Trenches funcionando!' });
+// ============ CONFIGURAÇÕES GLOBAIS (MongoDB) ============
+
+// Buscar configurações
+app.get('/api/settings', async (req, res) => {
+    try {
+        await ensureConnection();
+        let settings = await Setting.findOne();
+        if (!settings) {
+            // Criar configurações padrão
+            settings = new Setting({
+                hours: {
+                    mon: 'FECHADO',
+                    tue: '09:00 - 20:00',
+                    wed: '09:00 - 20:00',
+                    thu: '09:00 - 21:00',
+                    fri: '09:00 - 21:00',
+                    sat: '09:00 - 18:00'
+                },
+                services: [
+                    { name: 'Cabelo', price: 40, duration: 45, id: 'cabelo' },
+                    { name: 'Barba', price: 40, duration: 30, id: 'barba' },
+                    { name: 'Cabelo e Barba', price: 80, duration: 75, id: 'combo' },
+                    { name: 'Pacote Trenches', price: 125, duration: 90, id: 'pacote' }
+                ],
+                phone: '(11) 94848-4457',
+                instagram: '@barbeariatrenches',
+                address: 'Av. Maj. Melo, 35\nVila Nova Aparecida\nMogi das Cruzes - SP',
+                blockedDates: []
+            });
+            await settings.save();
+            console.log('📋 Configurações padrão criadas');
+        }
+        res.json(settings);
+    } catch (error) {
+        console.error('Erro ao buscar configurações:', error);
+        res.status(500).json({ error: 'Erro ao buscar configurações' });
+    }
+});
+
+// Salvar configurações
+app.post('/api/settings', async (req, res) => {
+    try {
+        await ensureConnection();
+        const updates = req.body;
+        
+        let settings = await Setting.findOne();
+        if (!settings) {
+            settings = new Setting();
+        }
+        
+        // Atualizar campos
+        if (updates.hours) settings.hours = { ...settings.hours, ...updates.hours };
+        if (updates.services) settings.services = updates.services;
+        if (updates.phone) settings.phone = updates.phone;
+        if (updates.instagram) settings.instagram = updates.instagram;
+        if (updates.address) settings.address = updates.address;
+        if (updates.blockedDates) settings.blockedDates = updates.blockedDates;
+        
+        settings.updatedAt = Date.now();
+        await settings.save();
+        
+        console.log('✅ Configurações salvas globalmente');
+        res.json({ message: 'Configurações salvas com sucesso!', settings });
+    } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
+        res.status(500).json({ error: 'Erro ao salvar configurações' });
+    }
 });
 
 // ============ ROTAS DE BARBEIROS ============

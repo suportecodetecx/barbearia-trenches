@@ -545,7 +545,7 @@
     
     <script>
         let currentUser = null;
-        let barbeirosCache = null; // Cache para evitar pisca-pisca
+        let barbeirosCache = null;
         let isLoadingBarbeiros = false;
         
         // Menu mobile - icone tres riscos
@@ -558,7 +558,6 @@
             });
         }
         
-        // Fechar menu ao clicar nos links e rolar para a seção
         document.querySelectorAll('.menu-link').forEach(link => {
             link.addEventListener('click', function(e) {
                 const targetId = this.getAttribute('href');
@@ -806,22 +805,16 @@
             }
         }
         
-        // FUNÇÃO CORRIGIDA: Buscar barbeiros da API (MongoDB) - SEM PISCA-PISCA
         async function loadAllBarbeiros() {
             const ec = document.getElementById('equipeBarbeiros');
             if (!ec) return;
-            
-            // Se já está carregando, não faz nada
             if (isLoadingBarbeiros) return;
-            
             isLoadingBarbeiros = true;
-            
             try {
                 const response = await fetch('/api/barbers');
                 if (response.ok) {
                     const barbeiros = await response.json();
                     barbeirosCache = barbeiros;
-                    
                     if (barbeiros.length > 0) {
                         ec.innerHTML = barbeiros.map(b => `
                             <div class="main-barber-card">
@@ -856,41 +849,67 @@
             return div.innerHTML;
         }
         
-        function loadDynamicPrices() {
-            const saved = localStorage.getItem('adminSettings');
-            const container = document.getElementById('dynamicPrices');
-            if (!container) return;
-            
-            let services = [];
-            if (saved) {
-                try {
-                    const s = JSON.parse(saved);
-                    if (s.services && s.services.length > 0) services = s.services;
-                } catch(e) {}
-            }
-            if (services.length === 0) {
-                services = [
-                    { name: 'Cabelo', price: 40, duration: 45 },
-                    { name: 'Barba', price: 40, duration: 30 },
-                    { name: 'Cabelo e Barba', price: 80, duration: 75 },
-                    { name: 'Pacote Trenches', price: 110, duration: 90 }
-                ];
-            }
-            
-            container.innerHTML = services.map(sv => {
-                const durMin = sv.duration || 45;
-                let durText = '';
-                if (durMin < 60) durText = '(' + durMin + ' min)';
-                else {
-                    const h = Math.floor(durMin / 60);
-                    const m = durMin % 60;
-                    durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
+        // Buscar configurações do MongoDB (global)
+        async function loadGlobalSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    // Atualizar preços
+                    if (settings.services && settings.services.length > 0) {
+                        const container = document.getElementById('dynamicPrices');
+                        if (container) {
+                            container.innerHTML = settings.services.map(sv => {
+                                const durMin = sv.duration || 45;
+                                let durText = '';
+                                if (durMin < 60) durText = '(' + durMin + ' min)';
+                                else {
+                                    const h = Math.floor(durMin / 60);
+                                    const m = durMin % 60;
+                                    durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
+                                }
+                                return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
+                            }).join('');
+                        }
+                    }
+                    // Atualizar horários
+                    if (settings.hours) {
+                        const hm = { mon: 'hourMonDisplay', tue: 'hourTueDisplay', wed: 'hourWedDisplay', thu: 'hourThuDisplay', fri: 'hourFriDisplay', sat: 'hourSatDisplay' };
+                        for (const [k, v] of Object.entries(hm)) {
+                            const el = document.getElementById(v);
+                            if (el && settings.hours[k]) {
+                                const val = settings.hours[k];
+                                el.textContent = val.replace(':00', 'h').replace(' - ', 'h - ');
+                            }
+                        }
+                    }
+                    // Atualizar contato
+                    if (settings.phone) {
+                        const cp = document.getElementById('contactPhone');
+                        if (cp) {
+                            cp.textContent = settings.phone;
+                            cp.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
+                        }
+                        const wf = document.querySelector('.whatsapp-float');
+                        if (wf) wf.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
+                    }
+                    if (settings.instagram) {
+                        const ih = document.getElementById('instagramHandle');
+                        if (ih) ih.textContent = settings.instagram;
+                    }
+                    if (settings.address) {
+                        const ca = document.getElementById('contactAddress');
+                        if (ca) ca.innerHTML = '<strong>Endereço</strong><br>' + settings.address.replace(/\n/g, '<br>');
+                    }
                 }
-                return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
-            }).join('');
+            } catch (error) {
+                console.error('Erro ao carregar configurações globais:', error);
+                // Fallback para localStorage
+                loadLocalSettings();
+            }
         }
         
-        function loadAllSettings() {
+        function loadLocalSettings() {
             const s = localStorage.getItem('adminSettings');
             if (s) {
                 try {
@@ -922,10 +941,24 @@
                         const ih = document.getElementById('instagramHandle');
                         if (ih) ih.textContent = cfg.instagram;
                     }
+                    if (cfg.services && cfg.services.length > 0) {
+                        const container = document.getElementById('dynamicPrices');
+                        if (container) {
+                            container.innerHTML = cfg.services.map(sv => {
+                                const durMin = sv.duration || 45;
+                                let durText = '';
+                                if (durMin < 60) durText = '(' + durMin + ' min)';
+                                else {
+                                    const h = Math.floor(durMin / 60);
+                                    const m = durMin % 60;
+                                    durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
+                                }
+                                return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
+                            }).join('');
+                        }
+                    }
                 } catch(e) {}
             }
-            loadDynamicPrices();
-            loadAllBarbeiros();
         }
         
         let currentUserAvatar = localStorage.getItem('currentUserAvatar') || 'images/avatar.png';
@@ -1108,9 +1141,9 @@
             }
             updateHeaderAvatar();
             
-            loadAllSettings();
+            // Carregar configurações globais
+            loadGlobalSettings();
             
-            // Carregar calendário após os barbeiros (para não travar)
             setTimeout(() => {
                 if (typeof initCalendar === 'function') {
                     initCalendar();

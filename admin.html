@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -387,6 +386,83 @@ Mogi das Cruzes - SP</textarea></div>
         function closeToast(){document.getElementById('toastOverlay').classList.remove('show');}
         document.addEventListener('DOMContentLoaded',function(){document.getElementById('toastOverlay').addEventListener('click',function(e){if(e.target===this)closeToast();});});
 
+        // ========== CONFIGURAÇÕES GLOBAIS (MongoDB) ==========
+        async function loadSettings() {
+            try {
+                const response = await fetch(API_URL + '/api/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    // Carregar horários
+                    if (settings.hours) {
+                        document.getElementById('hourMon').value = settings.hours.mon || 'FECHADO';
+                        document.getElementById('hourTue').value = settings.hours.tue || '09:00 - 20:00';
+                        document.getElementById('hourWed').value = settings.hours.wed || '09:00 - 20:00';
+                        document.getElementById('hourThu').value = settings.hours.thu || '09:00 - 21:00';
+                        document.getElementById('hourFri').value = settings.hours.fri || '09:00 - 21:00';
+                        document.getElementById('hourSat').value = settings.hours.sat || '09:00 - 18:00';
+                    }
+                    // Carregar contato
+                    if (settings.phone) document.getElementById('adminPhone').value = settings.phone;
+                    if (settings.instagram) document.getElementById('adminInstagram').value = settings.instagram;
+                    if (settings.address) document.getElementById('adminAddress').value = settings.address;
+                    // Carregar serviços
+                    if (settings.services && settings.services.length > 0) {
+                        window._tempServices = settings.services;
+                        renderServices();
+                    }
+                    // Carregar datas bloqueadas
+                    if (settings.blockedDates) {
+                        renderBlockedDates(settings.blockedDates);
+                    }
+                } else {
+                    // Fallback para localStorage
+                    loadLocalSettings();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                loadLocalSettings();
+            }
+        }
+
+        async function saveSettings(data) {
+            try {
+                const response = await fetch(API_URL + '/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showToast('Sucesso', 'Configurações salvas globalmente!');
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                return false;
+            }
+        }
+
+        function loadLocalSettings() {
+            const s = localStorage.getItem('adminSettings');
+            if (s) {
+                const p = JSON.parse(s);
+                if (p.hours) {
+                    document.getElementById('hourMon').value = p.hours.mon || 'FECHADO';
+                    document.getElementById('hourTue').value = p.hours.tue || '09:00 - 20:00';
+                    document.getElementById('hourWed').value = p.hours.wed || '09:00 - 20:00';
+                    document.getElementById('hourThu').value = p.hours.thu || '09:00 - 21:00';
+                    document.getElementById('hourFri').value = p.hours.fri || '09:00 - 21:00';
+                    document.getElementById('hourSat').value = p.hours.sat || '09:00 - 18:00';
+                }
+                if (p.phone) document.getElementById('adminPhone').value = p.phone;
+                if (p.instagram) document.getElementById('adminInstagram').value = p.instagram;
+                if (p.address) document.getElementById('adminAddress').value = p.address;
+                if (p.services) window._tempServices = p.services;
+                if (p.blockedDates) renderBlockedDates(p.blockedDates);
+                renderServices();
+            }
+        }
+
         // ========== BARBEIROS - API (MongoDB) ==========
         async function loadBarbeiros() {
             try {
@@ -394,8 +470,6 @@ Mogi das Cruzes - SP</textarea></div>
                 if (response.ok) {
                     const barbeiros = await response.json();
                     renderBarbeiros(barbeiros);
-                } else {
-                    console.error('Erro ao carregar barbeiros');
                 }
             } catch (error) {
                 console.error('Erro:', error);
@@ -560,38 +634,25 @@ Mogi das Cruzes - SP</textarea></div>
             return div.innerHTML;
         }
 
-        function notifyIndexUpdate(k) {
-            localStorage.setItem('__lastUpdate', Date.now().toString());
-            window.dispatchEvent(new StorageEvent('storage', { key: k, newValue: localStorage.getItem(k) }));
-        }
-
+        // ========== SERVIÇOS ==========
         const DEFAULT_SERVICES = [{name:'Cabelo',price:40,duration:45,id:'cabelo'},{name:'Barba',price:40,duration:30,id:'barba'},{name:'Cabelo e Barba',price:80,duration:75,id:'combo'},{name:'Pacote Trenches',price:125,duration:90,id:'pacote'}];
         
         function getServices() {
             if (window._tempServices && window._tempServices.length > 0) return window._tempServices;
-            const s = localStorage.getItem('adminSettings');
-            if (s) {
-                try {
-                    const p = JSON.parse(s);
-                    if (p.services && p.services.length > 0) {
-                        window._tempServices = p.services;
-                        return p.services;
-                    }
-                } catch(e) {}
-            }
-            window._tempServices = [...DEFAULT_SERVICES];
             return [...DEFAULT_SERVICES];
         }
 
-        function saveServicesToSettings(sv) {
-            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
-            s.prices = {};
-            sv.forEach(x => { s.prices[x.id] = x.price; });
-            s.services = sv;
-            localStorage.setItem('adminSettings', JSON.stringify(s));
-            window._tempServices = sv;
-            notifyIndexUpdate('adminSettings');
-            showToast('Serviços Atualizados', 'Serviços e preços salvos.');
+        async function saveServices() {
+            const services = getServices();
+            for (const x of services) {
+                if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; }
+                if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; }
+                if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; }
+            }
+            const success = await saveSettings({ services: services });
+            if (success) {
+                showToast('Serviços Atualizados', 'Serviços e preços salvos globalmente.');
+            }
         }
 
         function renderServices() {
@@ -632,40 +693,9 @@ Mogi das Cruzes - SP</textarea></div>
             showToast('Serviço Removido', 'Removido da lista.');
         }
 
-        function saveServices() {
-            const s = getServices();
-            for (const x of s) {
-                if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; }
-                if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; }
-                if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; }
-            }
-            saveServicesToSettings(s);
-        }
-
-        function loadAllSettings() {
-            const s = localStorage.getItem('adminSettings');
-            if (s) {
-                const p = JSON.parse(s);
-                if (p.hours) {
-                    document.getElementById('hourMon').value = p.hours.mon || 'FECHADO';
-                    document.getElementById('hourTue').value = p.hours.tue || '09:00 - 20:00';
-                    document.getElementById('hourWed').value = p.hours.wed || '09:00 - 20:00';
-                    document.getElementById('hourThu').value = p.hours.thu || '09:00 - 21:00';
-                    document.getElementById('hourFri').value = p.hours.fri || '09:00 - 21:00';
-                    document.getElementById('hourSat').value = p.hours.sat || '09:00 - 18:00';
-                }
-                if (p.phone) document.getElementById('adminPhone').value = p.phone;
-                if (p.instagram) document.getElementById('adminInstagram').value = p.instagram;
-                if (p.address) document.getElementById('adminAddress').value = p.address;
-                if (p.services) window._tempServices = p.services;
-                renderBlockedDates(p.blockedDates || []);
-            }
-            renderServices();
-        }
-
-        function saveHours() {
-            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
-            s.hours = {
+        // ========== HORÁRIOS ==========
+        async function saveHours() {
+            const hours = {
                 mon: document.getElementById('hourMon').value,
                 tue: document.getElementById('hourTue').value,
                 wed: document.getElementById('hourWed').value,
@@ -673,50 +703,65 @@ Mogi das Cruzes - SP</textarea></div>
                 fri: document.getElementById('hourFri').value,
                 sat: document.getElementById('hourSat').value
             };
-            localStorage.setItem('adminSettings', JSON.stringify(s));
-            notifyIndexUpdate('adminSettings');
-            showToast('Horários Atualizados', 'Horários salvos.');
+            const success = await saveSettings({ hours: hours });
+            if (success) {
+                showToast('Horários Atualizados', 'Horários salvos globalmente.');
+            }
         }
 
-        function addBlockedDate() {
-            const i = document.getElementById('blockedDateInput'), d = i.value;
-            if (!d) { showToast('Atenção', 'Selecione uma data.'); return; }
-            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
-            if (!s.blockedDates) s.blockedDates = [];
-            if (s.blockedDates.includes(d)) { showToast('Atenção', 'Data já bloqueada.'); return; }
-            s.blockedDates.push(d);
-            s.blockedDates.sort();
-            localStorage.setItem('adminSettings', JSON.stringify(s));
-            notifyIndexUpdate('adminSettings');
-            i.value = '';
-            renderBlockedDates(s.blockedDates);
-        }
+        // ========== DATAS BLOQUEADAS ==========
+        let blockedDates = [];
 
-        function removeBlockedDate(d) {
-            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
-            s.blockedDates = (s.blockedDates || []).filter(x => x !== d);
-            localStorage.setItem('adminSettings', JSON.stringify(s));
-            notifyIndexUpdate('adminSettings');
-            renderBlockedDates(s.blockedDates);
-        }
-
-        function renderBlockedDates(d) {
+        function renderBlockedDates(dates) {
+            blockedDates = dates || [];
             const c = document.getElementById('blockedDatesTags');
             if (!c) return;
-            if (d.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>'; return; }
-            c.innerHTML = d.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');
+            if (blockedDates.length === 0) {
+                c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>';
+                return;
+            }
+            c.innerHTML = blockedDates.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');
         }
 
-        function saveContact() {
-            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
-            s.phone = document.getElementById('adminPhone').value;
-            s.instagram = document.getElementById('adminInstagram').value;
-            s.address = document.getElementById('adminAddress').value;
-            localStorage.setItem('adminSettings', JSON.stringify(s));
-            notifyIndexUpdate('adminSettings');
-            showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos.');
+        async function addBlockedDate() {
+            const input = document.getElementById('blockedDateInput');
+            const date = input.value;
+            if (!date) { showToast('Atenção', 'Selecione uma data.'); return; }
+            if (blockedDates.includes(date)) { showToast('Atenção', 'Data já bloqueada.'); return; }
+            const newDates = [...blockedDates, date].sort();
+            const success = await saveSettings({ blockedDates: newDates });
+            if (success) {
+                blockedDates = newDates;
+                renderBlockedDates(blockedDates);
+                input.value = '';
+                showToast('Sucesso', 'Data bloqueada globalmente!');
+            }
         }
 
+        async function removeBlockedDate(date) {
+            const newDates = blockedDates.filter(x => x !== date);
+            const success = await saveSettings({ blockedDates: newDates });
+            if (success) {
+                blockedDates = newDates;
+                renderBlockedDates(blockedDates);
+                showToast('Sucesso', 'Data desbloqueada!');
+            }
+        }
+
+        // ========== CONTATO ==========
+        async function saveContact() {
+            const contact = {
+                phone: document.getElementById('adminPhone').value,
+                instagram: document.getElementById('adminInstagram').value,
+                address: document.getElementById('adminAddress').value
+            };
+            const success = await saveSettings(contact);
+            if (success) {
+                showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos globalmente.');
+            }
+        }
+
+        // ========== RESERVAS ==========
         async function loadAllBookings() {
             const c = document.getElementById('bookingsList');
             c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>';
@@ -772,9 +817,9 @@ Mogi das Cruzes - SP</textarea></div>
         function logout() { window.location.href = 'index.html'; }
 
         async function init() {
-            loadAllSettings();
+            await loadSettings();
             await loadBarbeiros();
-            renderBlockedDates((JSON.parse(localStorage.getItem('adminSettings') || '{}')).blockedDates || []);
+            renderServices();
             await loadTodaysBookings();
         }
         init();
