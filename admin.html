@@ -383,53 +383,449 @@ Mogi das Cruzes - SP</textarea></div>
     <script>
         const API_URL = '';
         let allBookings = [], currentPhotoPreview = null;
-        let editBarberIndex = null, editPhotoPreview = null, deleteBarberIndex = null;
+        let editBarberIndex = null, editPhotoPreview = null, deleteBarberId = null;
 
         function showToast(t,m){document.getElementById('toastTitle').textContent=t;document.getElementById('toastText').textContent=m;document.getElementById('toastOverlay').classList.add('show');}
         function closeToast(){document.getElementById('toastOverlay').classList.remove('show');}
         document.addEventListener('DOMContentLoaded',function(){document.getElementById('toastOverlay').addEventListener('click',function(e){if(e.target===this)closeToast();});});
 
-        function openEditModal(i){editBarberIndex=i;editPhotoPreview=null;document.getElementById('editBarberName').value=barbeiros[i].name;document.getElementById('editPhotoPreview').innerHTML='';document.getElementById('editBarberPhoto').value='';document.getElementById('editBarberModal').classList.add('show');}
-        function closeEditModal(){document.getElementById('editBarberModal').classList.remove('show');editBarberIndex=null;editPhotoPreview=null;}
-        function previewEditPhoto(input){const f=input.files[0];if(f){const r=new FileReader();r.onload=function(e){editPhotoPreview=e.target.result;document.getElementById('editPhotoPreview').innerHTML='<img src="'+editPhotoPreview+'" class="preview-image">';};r.readAsDataURL(f);}}
-        function saveEditBarber(){const nn=document.getElementById('editBarberName').value.trim();if(!nn){showToast('Atenção','Digite um nome.');return;}barbeiros[editBarberIndex].name=nn;if(editPhotoPreview)barbeiros[editBarberIndex].photo=editPhotoPreview;localStorage.setItem('barbeiros',JSON.stringify(barbeiros));notifyIndexUpdate('barbeiros');renderBarbeiros();closeEditModal();showToast('Barbeiro Atualizado','Nome e foto atualizados.');}
+        // ========== BARBEIROS - API (MongoDB) ==========
+        let barbeiros = [];
 
-        function openDeleteModal(i){deleteBarberIndex=i;document.getElementById('deleteText').textContent='Tem certeza que deseja remover '+barbeiros[i].name+'?';document.getElementById('deleteConfirmModal').classList.add('show');}
-        function closeDeleteModal(){document.getElementById('deleteConfirmModal').classList.remove('show');deleteBarberIndex=null;}
-        document.getElementById('confirmDeleteBtn').addEventListener('click',function(){if(deleteBarberIndex!==null){const n=barbeiros[deleteBarberIndex].name;barbeiros.splice(deleteBarberIndex,1);localStorage.setItem('barbeiros',JSON.stringify(barbeiros));notifyIndexUpdate('barbeiros');renderBarbeiros();closeDeleteModal();showToast('Barbeiro Removido',n+' foi removido.');}});
-        document.getElementById('editBarberModal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
-        document.getElementById('deleteConfirmModal').addEventListener('click',function(e){if(e.target===this)closeDeleteModal();});
+        async function loadBarbeirosFromAPI() {
+            try {
+                const response = await fetch(API_URL + '/api/barbers');
+                if (response.ok) {
+                    barbeiros = await response.json();
+                    renderBarbeiros();
+                } else {
+                    console.error('Erro ao carregar barbeiros:', response.status);
+                    showToast('Erro', 'Não foi possível carregar os barbeiros.');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar barbeiros:', error);
+                showToast('Erro', 'Erro de conexão com o servidor.');
+            }
+        }
 
-        function notifyIndexUpdate(k){localStorage.setItem('__lastUpdate',Date.now().toString());window.dispatchEvent(new StorageEvent('storage',{key:k,newValue:localStorage.getItem(k)}));}
+        async function addBarbeiroToAPI(name, photo) {
+            try {
+                const response = await fetch(API_URL + '/api/barbers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
+                });
+                
+                if (response.ok) {
+                    await loadBarbeirosFromAPI();
+                    showToast('Barbeiro Adicionado', name + ' foi adicionado!');
+                    return true;
+                } else {
+                    const error = await response.json();
+                    showToast('Erro', error.error || 'Não foi possível adicionar.');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro', 'Erro de conexão.');
+                return false;
+            }
+        }
 
-        const DEFAULT_SERVICES=[{name:'Cabelo',price:40,duration:45,id:'cabelo'},{name:'Barba',price:40,duration:30,id:'barba'},{name:'Cabelo e Barba',price:80,duration:75,id:'combo'},{name:'Pacote Trenches',price:125,duration:90,id:'pacote'}];
-        function getServices(){if(window._tempServices&&window._tempServices.length>0)return window._tempServices;const s=localStorage.getItem('adminSettings');if(s){try{const p=JSON.parse(s);if(p.services&&p.services.length>0){window._tempServices=p.services;return p.services;}}catch(e){}}window._tempServices=[...DEFAULT_SERVICES];return[...DEFAULT_SERVICES];}
-        function saveServicesToSettings(sv){let s=JSON.parse(localStorage.getItem('adminSettings')||'{}');s.prices={};sv.forEach(x=>{s.prices[x.id]=x.price;});s.services=sv;localStorage.setItem('adminSettings',JSON.stringify(s));window._tempServices=sv;notifyIndexUpdate('adminSettings');showToast('Serviços Atualizados','Serviços e preços salvos.');}
-        function renderServices(){const c=document.getElementById('servicesContainer');if(!c)return;const sv=getServices();c.innerHTML=sv.map((s,i)=>`<div class="service-dynamic-item"><div class="field-name"><input type="text" value="${s.name}" onchange="updateServiceField(${i},'name',this.value)"></div><div class="field-price"><input type="number" value="${s.price}" step="5" onchange="updateServiceField(${i},'price',parseInt(this.value)||0)"></div><div class="field-duration"><input type="number" value="${s.duration}" step="5" onchange="updateServiceField(${i},'duration',parseInt(this.value)||0)"></div><div class="field-action"><button class="btn-remove-service" onclick="removeService(${i})"><i class="fas fa-trash"></i></button></div></div>`).join('');}
-        function updateServiceField(i,f,v){const s=getServices();if(i>=0&&i<s.length){s[i][f]=v;window._tempServices=s;}}
-        function addNewService(){const s=getServices();s.push({name:'Novo Serviço',price:50,duration:30,id:'svc_'+Date.now()});window._tempServices=s;renderServices();}
-        function removeService(i){const s=getServices();if(s.length<=1){showToast('Atenção','Mantenha pelo menos um serviço.');return;}s.splice(i,1);window._tempServices=s;renderServices();showToast('Serviço Removido','Removido da lista.');}
-        function saveServices(){const s=getServices();for(const x of s){if(!x.name||x.name.trim()===''){showToast('Atenção','Nome obrigatório.');return;}if(!x.price||x.price<=0){showToast('Atenção','Preço inválido.');return;}if(!x.duration||x.duration<=0){showToast('Atenção','Duração inválida.');return;}}saveServicesToSettings(s);}
+        async function updateBarbeiroAPI(id, name, photo) {
+            try {
+                const response = await fetch(API_URL + '/api/barbers/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
+                });
+                
+                if (response.ok) {
+                    await loadBarbeirosFromAPI();
+                    showToast('Barbeiro Atualizado', 'Nome e foto atualizados.');
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro', 'Erro de conexão.');
+                return false;
+            }
+        }
 
-        function loadAllSettings(){const s=localStorage.getItem('adminSettings');if(s){const p=JSON.parse(s);if(p.hours){document.getElementById('hourMon').value=p.hours.mon||'FECHADO';document.getElementById('hourTue').value=p.hours.tue||'09:00 - 20:00';document.getElementById('hourWed').value=p.hours.wed||'09:00 - 20:00';document.getElementById('hourThu').value=p.hours.thu||'09:00 - 21:00';document.getElementById('hourFri').value=p.hours.fri||'09:00 - 21:00';document.getElementById('hourSat').value=p.hours.sat||'09:00 - 18:00';}if(p.phone)document.getElementById('adminPhone').value=p.phone;if(p.instagram)document.getElementById('adminInstagram').value=p.instagram;if(p.address)document.getElementById('adminAddress').value=p.address;if(p.services)window._tempServices=p.services;renderBlockedDates(p.blockedDates||[]);}renderServices();}
-        function saveHours(){let s=JSON.parse(localStorage.getItem('adminSettings')||'{}');s.hours={mon:document.getElementById('hourMon').value,tue:document.getElementById('hourTue').value,wed:document.getElementById('hourWed').value,thu:document.getElementById('hourThu').value,fri:document.getElementById('hourFri').value,sat:document.getElementById('hourSat').value};localStorage.setItem('adminSettings',JSON.stringify(s));notifyIndexUpdate('adminSettings');showToast('Horários Atualizados','Horários salvos.');}
-        function addBlockedDate(){const i=document.getElementById('blockedDateInput'),d=i.value;if(!d){showToast('Atenção','Selecione uma data.');return;}let s=JSON.parse(localStorage.getItem('adminSettings')||'{}');if(!s.blockedDates)s.blockedDates=[];if(s.blockedDates.includes(d)){showToast('Atenção','Data já bloqueada.');return;}s.blockedDates.push(d);s.blockedDates.sort();localStorage.setItem('adminSettings',JSON.stringify(s));notifyIndexUpdate('adminSettings');i.value='';renderBlockedDates(s.blockedDates);}
-        function removeBlockedDate(d){let s=JSON.parse(localStorage.getItem('adminSettings')||'{}');s.blockedDates=(s.blockedDates||[]).filter(x=>x!==d);localStorage.setItem('adminSettings',JSON.stringify(s));notifyIndexUpdate('adminSettings');renderBlockedDates(s.blockedDates);}
-        function renderBlockedDates(d){const c=document.getElementById('blockedDatesTags');if(!c)return;if(d.length===0){c.innerHTML='<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>';return;}c.innerHTML=d.map(x=>`<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');}
-        function saveContact(){let s=JSON.parse(localStorage.getItem('adminSettings')||'{}');s.phone=document.getElementById('adminPhone').value;s.instagram=document.getElementById('adminInstagram').value;s.address=document.getElementById('adminAddress').value;localStorage.setItem('adminSettings',JSON.stringify(s));notifyIndexUpdate('adminSettings');showToast('Contato Atualizado','WhatsApp, Instagram e endereço salvos.');}
+        async function deleteBarbeiroAPI(id) {
+            try {
+                const response = await fetch(API_URL + '/api/barbers/' + id, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await loadBarbeirosFromAPI();
+                    showToast('Barbeiro Removido', 'Removido com sucesso.');
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro', 'Erro de conexão.');
+                return false;
+            }
+        }
 
-        let barbeiros=JSON.parse(localStorage.getItem('barbeiros')||'[]');
-        function previewPhoto(i){const f=i.files[0];if(f){const r=new FileReader();r.onload=function(e){currentPhotoPreview=e.target.result;document.getElementById('previewContainer').innerHTML='<img src="'+currentPhotoPreview+'" class="preview-image">';};r.readAsDataURL(f);}}
-        function addBarbeiro(){const n=document.getElementById('barbeiroName').value.trim();if(!n){showToast('Atenção','Digite o nome.');return;}if(!currentPhotoPreview){showToast('Atenção','Selecione uma foto.');return;}barbeiros.push({name:n,photo:currentPhotoPreview,id:Date.now()});localStorage.setItem('barbeiros',JSON.stringify(barbeiros));notifyIndexUpdate('barbeiros');document.getElementById('barbeiroName').value='';document.getElementById('previewContainer').innerHTML='';currentPhotoPreview=null;document.getElementById('barbeiroPhoto').value='';renderBarbeiros();showToast('Barbeiro Adicionado',n+' foi adicionado.');}
-        function renderBarbeiros(){const c=document.getElementById('barbeirosList');if(!c)return;if(barbeiros.length===0){c.innerHTML='<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>';return;}c.innerHTML=barbeiros.map((b,i)=>`<div class="barbeiro-item"><img src="${b.photo}" onerror="this.src='images/avatar.png'"><div class="barbeiro-info"><strong>${b.name}</strong></div><button onclick="openEditModal(${i})" style="background:#ff9800;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;color:black;"><i class="fas fa-edit"></i></button><button onclick="openDeleteModal(${i})" class="btn-danger">X</button></div>`).join('');}
+        // Funções UI para barbeiros
+        function openEditModal(i) {
+            editBarberIndex = i;
+            editPhotoPreview = null;
+            document.getElementById('editBarberName').value = barbeiros[i].name;
+            document.getElementById('editPhotoPreview').innerHTML = '';
+            document.getElementById('editBarberPhoto').value = '';
+            document.getElementById('editBarberModal').classList.add('show');
+        }
 
-        async function loadAllBookings(){const c=document.getElementById('bookingsList');c.innerHTML='<p style="color:var(--silver-soft);">Carregando...</p>';try{const r=await fetch(API_URL+'/api/bookings/all');if(r.ok){allBookings=await r.json();displayBookings(allBookings);document.getElementById('reservasTitle').innerHTML='Todas as Reservas';}}catch(e){c.innerHTML='<p style="color:#ff8888;">Erro de conexão</p>';}}
-        async function loadTodaysBookings(){const c=document.getElementById('bookingsList');c.innerHTML='<p style="color:var(--silver-soft);">Carregando...</p>';try{const r=await fetch(API_URL+'/api/bookings/all');if(r.ok){const b=await r.json();const today=new Date().toISOString().split('T')[0];displayBookings(b.filter(x=>x.date===today));document.getElementById('reservasTitle').innerHTML='Reservas de Hoje ('+today.split('-').reverse().join('/')+')';}}catch(e){c.innerHTML='<p style="color:#ff8888;">Erro de conexão</p>';}}
-        function filterBookings(){const m=document.getElementById('filterMonth').value,y=document.getElementById('filterYear').value;if(!m){showToast('Atenção','Selecione um mês.');return;}const f=allBookings.filter(b=>{const[by,bm]=b.date.split('-');return by===y&&bm===m;});const mn=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];displayBookings(f);document.getElementById('reservasTitle').innerHTML='Reservas - '+mn[parseInt(m)-1]+' '+y;}
-        function displayBookings(b){const c=document.getElementById('bookingsList'),ce=document.getElementById('reservasCount');if(!c)return;if(b.length===0){c.innerHTML='<p style="color:var(--silver-soft);">Nenhuma reserva</p>';ce.textContent='0 reservas';return;}b.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));ce.textContent=b.length+' reserva'+(b.length!==1?'s':'');c.innerHTML=b.map(x=>`<div class="booking-item"><strong><i class="far fa-calendar-alt"></i> ${x.date.split('-').reverse().join('/')}</strong> - <strong><i class="far fa-clock"></i> ${x.time}</strong><br><i class="fas fa-user"></i> Cliente: ${x.userName}<br><i class="fas fa-cut"></i> Serviço: ${x.service}<br><i class="fas fa-phone"></i> <small>${x.userId||'N/E'}</small></div>`).join('');}
+        function closeEditModal() {
+            document.getElementById('editBarberModal').classList.remove('show');
+            editBarberIndex = null;
+            editPhotoPreview = null;
+        }
 
-        function logout(){window.location.href='index.html';}
-        async function init(){loadAllSettings();renderBarbeiros();renderBlockedDates((JSON.parse(localStorage.getItem('adminSettings')||'{}')).blockedDates||[]);await loadTodaysBookings();}
+        function previewEditPhoto(input) {
+            const f = input.files[0];
+            if (f) {
+                const r = new FileReader();
+                r.onload = function(e) {
+                    editPhotoPreview = e.target.result;
+                    document.getElementById('editPhotoPreview').innerHTML = '<img src="' + editPhotoPreview + '" class="preview-image">';
+                };
+                r.readAsDataURL(f);
+            }
+        }
+
+        function saveEditBarber() {
+            const newName = document.getElementById('editBarberName').value.trim();
+            if (!newName) {
+                showToast('Atenção', 'Digite um nome.');
+                return;
+            }
+            if (editBarberIndex !== null) {
+                const barber = barbeiros[editBarberIndex];
+                updateBarbeiroAPI(barber._id, newName, editPhotoPreview || barber.photo);
+            }
+            closeEditModal();
+        }
+
+        function openDeleteModal(id, name) {
+            deleteBarberId = id;
+            document.getElementById('deleteText').textContent = 'Tem certeza que deseja remover ' + name + '?';
+            document.getElementById('deleteConfirmModal').classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteConfirmModal').classList.remove('show');
+            deleteBarberId = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (deleteBarberId) {
+                deleteBarbeiroAPI(deleteBarberId);
+                deleteBarberId = null;
+                closeDeleteModal();
+            }
+        });
+
+        document.getElementById('editBarberModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+        document.getElementById('deleteConfirmModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+
+        function previewPhoto(input) {
+            const f = input.files[0];
+            if (f) {
+                const r = new FileReader();
+                r.onload = function(e) {
+                    currentPhotoPreview = e.target.result;
+                    document.getElementById('previewContainer').innerHTML = '<img src="' + currentPhotoPreview + '" class="preview-image">';
+                };
+                r.readAsDataURL(f);
+            }
+        }
+
+        function addBarbeiro() {
+            const name = document.getElementById('barbeiroName').value.trim();
+            if (!name) {
+                showToast('Atenção', 'Digite o nome.');
+                return;
+            }
+            if (!currentPhotoPreview) {
+                showToast('Atenção', 'Selecione uma foto.');
+                return;
+            }
+            addBarbeiroToAPI(name, currentPhotoPreview);
+            document.getElementById('barbeiroName').value = '';
+            document.getElementById('previewContainer').innerHTML = '';
+            currentPhotoPreview = null;
+            document.getElementById('barbeiroPhoto').value = '';
+        }
+
+        function renderBarbeiros() {
+            const c = document.getElementById('barbeirosList');
+            if (!c) return;
+            if (barbeiros.length === 0) {
+                c.innerHTML = '<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>';
+                return;
+            }
+            c.innerHTML = barbeiros.map(b => `
+                <div class="barbeiro-item">
+                    <img src="${b.photo || 'images/avatar.png'}" onerror="this.src='images/avatar.png'">
+                    <div class="barbeiro-info"><strong>${escapeHtml(b.name)}</strong></div>
+                    <button onclick="openEditModal(${barbeiros.indexOf(b)})" style="background:#ff9800;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;color:black;"><i class="fas fa-edit"></i></button>
+                    <button onclick="openDeleteModal('${b._id}', '${escapeHtml(b.name)}')" class="btn-danger">X</button>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function notifyIndexUpdate(k) {
+            localStorage.setItem('__lastUpdate', Date.now().toString());
+            window.dispatchEvent(new StorageEvent('storage', { key: k, newValue: localStorage.getItem(k) }));
+        }
+
+        const DEFAULT_SERVICES = [{name:'Cabelo',price:40,duration:45,id:'cabelo'},{name:'Barba',price:40,duration:30,id:'barba'},{name:'Cabelo e Barba',price:80,duration:75,id:'combo'},{name:'Pacote Trenches',price:125,duration:90,id:'pacote'}];
+        
+        function getServices() {
+            if (window._tempServices && window._tempServices.length > 0) return window._tempServices;
+            const s = localStorage.getItem('adminSettings');
+            if (s) {
+                try {
+                    const p = JSON.parse(s);
+                    if (p.services && p.services.length > 0) {
+                        window._tempServices = p.services;
+                        return p.services;
+                    }
+                } catch(e) {}
+            }
+            window._tempServices = [...DEFAULT_SERVICES];
+            return [...DEFAULT_SERVICES];
+        }
+
+        function saveServicesToSettings(sv) {
+            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+            s.prices = {};
+            sv.forEach(x => { s.prices[x.id] = x.price; });
+            s.services = sv;
+            localStorage.setItem('adminSettings', JSON.stringify(s));
+            window._tempServices = sv;
+            notifyIndexUpdate('adminSettings');
+            showToast('Serviços Atualizados', 'Serviços e preços salvos.');
+        }
+
+        function renderServices() {
+            const c = document.getElementById('servicesContainer');
+            if (!c) return;
+            const sv = getServices();
+            c.innerHTML = sv.map((s, i) => `
+                <div class="service-dynamic-item">
+                    <div class="field-name"><input type="text" value="${escapeHtml(s.name)}" onchange="updateServiceField(${i},'name',this.value)"></div>
+                    <div class="field-price"><input type="number" value="${s.price}" step="5" onchange="updateServiceField(${i},'price',parseInt(this.value)||0)"></div>
+                    <div class="field-duration"><input type="number" value="${s.duration}" step="5" onchange="updateServiceField(${i},'duration',parseInt(this.value)||0)"></div>
+                    <div class="field-action"><button class="btn-remove-service" onclick="removeService(${i})"><i class="fas fa-trash"></i></button></div>
+                </div>
+            `).join('');
+        }
+
+        function updateServiceField(i, f, v) {
+            const s = getServices();
+            if (i >= 0 && i < s.length) {
+                s[i][f] = v;
+                window._tempServices = s;
+            }
+        }
+
+        function addNewService() {
+            const s = getServices();
+            s.push({ name: 'Novo Serviço', price: 50, duration: 30, id: 'svc_' + Date.now() });
+            window._tempServices = s;
+            renderServices();
+        }
+
+        function removeService(i) {
+            const s = getServices();
+            if (s.length <= 1) {
+                showToast('Atenção', 'Mantenha pelo menos um serviço.');
+                return;
+            }
+            s.splice(i, 1);
+            window._tempServices = s;
+            renderServices();
+            showToast('Serviço Removido', 'Removido da lista.');
+        }
+
+        function saveServices() {
+            const s = getServices();
+            for (const x of s) {
+                if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; }
+                if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; }
+                if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; }
+            }
+            saveServicesToSettings(s);
+        }
+
+        function loadAllSettings() {
+            const s = localStorage.getItem('adminSettings');
+            if (s) {
+                const p = JSON.parse(s);
+                if (p.hours) {
+                    document.getElementById('hourMon').value = p.hours.mon || 'FECHADO';
+                    document.getElementById('hourTue').value = p.hours.tue || '09:00 - 20:00';
+                    document.getElementById('hourWed').value = p.hours.wed || '09:00 - 20:00';
+                    document.getElementById('hourThu').value = p.hours.thu || '09:00 - 21:00';
+                    document.getElementById('hourFri').value = p.hours.fri || '09:00 - 21:00';
+                    document.getElementById('hourSat').value = p.hours.sat || '09:00 - 18:00';
+                }
+                if (p.phone) document.getElementById('adminPhone').value = p.phone;
+                if (p.instagram) document.getElementById('adminInstagram').value = p.instagram;
+                if (p.address) document.getElementById('adminAddress').value = p.address;
+                if (p.services) window._tempServices = p.services;
+                renderBlockedDates(p.blockedDates || []);
+            }
+            renderServices();
+        }
+
+        function saveHours() {
+            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+            s.hours = {
+                mon: document.getElementById('hourMon').value,
+                tue: document.getElementById('hourTue').value,
+                wed: document.getElementById('hourWed').value,
+                thu: document.getElementById('hourThu').value,
+                fri: document.getElementById('hourFri').value,
+                sat: document.getElementById('hourSat').value
+            };
+            localStorage.setItem('adminSettings', JSON.stringify(s));
+            notifyIndexUpdate('adminSettings');
+            showToast('Horários Atualizados', 'Horários salvos.');
+        }
+
+        function addBlockedDate() {
+            const i = document.getElementById('blockedDateInput'), d = i.value;
+            if (!d) { showToast('Atenção', 'Selecione uma data.'); return; }
+            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+            if (!s.blockedDates) s.blockedDates = [];
+            if (s.blockedDates.includes(d)) { showToast('Atenção', 'Data já bloqueada.'); return; }
+            s.blockedDates.push(d);
+            s.blockedDates.sort();
+            localStorage.setItem('adminSettings', JSON.stringify(s));
+            notifyIndexUpdate('adminSettings');
+            i.value = '';
+            renderBlockedDates(s.blockedDates);
+        }
+
+        function removeBlockedDate(d) {
+            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+            s.blockedDates = (s.blockedDates || []).filter(x => x !== d);
+            localStorage.setItem('adminSettings', JSON.stringify(s));
+            notifyIndexUpdate('adminSettings');
+            renderBlockedDates(s.blockedDates);
+        }
+
+        function renderBlockedDates(d) {
+            const c = document.getElementById('blockedDatesTags');
+            if (!c) return;
+            if (d.length === 0) {
+                c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>';
+                return;
+            }
+            c.innerHTML = d.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');
+        }
+
+        function saveContact() {
+            let s = JSON.parse(localStorage.getItem('adminSettings') || '{}');
+            s.phone = document.getElementById('adminPhone').value;
+            s.instagram = document.getElementById('adminInstagram').value;
+            s.address = document.getElementById('adminAddress').value;
+            localStorage.setItem('adminSettings', JSON.stringify(s));
+            notifyIndexUpdate('adminSettings');
+            showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos.');
+        }
+
+        async function loadAllBookings() {
+            const c = document.getElementById('bookingsList');
+            c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>';
+            try {
+                const r = await fetch(API_URL + '/api/bookings/all');
+                if (r.ok) {
+                    allBookings = await r.json();
+                    displayBookings(allBookings);
+                    document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas';
+                }
+            } catch(e) {
+                c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>';
+            }
+        }
+
+        async function loadTodaysBookings() {
+            const c = document.getElementById('bookingsList');
+            c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>';
+            try {
+                const r = await fetch(API_URL + '/api/bookings/all');
+                if (r.ok) {
+                    const b = await r.json();
+                    const today = new Date().toISOString().split('T')[0];
+                    displayBookings(b.filter(x => x.date === today));
+                    document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')';
+                }
+            } catch(e) {
+                c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>';
+            }
+        }
+
+        function filterBookings() {
+            const m = document.getElementById('filterMonth').value, y = document.getElementById('filterYear').value;
+            if (!m) { showToast('Atenção', 'Selecione um mês.'); return; }
+            const f = allBookings.filter(b => {
+                const [by, bm] = b.date.split('-');
+                return by === y && bm === m;
+            });
+            const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            displayBookings(f);
+            document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y;
+        }
+
+        function displayBookings(b) {
+            const c = document.getElementById('bookingsList'), ce = document.getElementById('reservasCount');
+            if (!c) return;
+            if (b.length === 0) {
+                c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>';
+                ce.textContent = '0 reservas';
+                return;
+            }
+            b.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            ce.textContent = b.length + ' reserva' + (b.length !== 1 ? 's' : '');
+            c.innerHTML = b.map(x => `
+                <div class="booking-item">
+                    <strong><i class="far fa-calendar-alt"></i> ${x.date.split('-').reverse().join('/')}</strong> - <strong><i class="far fa-clock"></i> ${x.time}</strong><br>
+                    <i class="fas fa-user"></i> Cliente: ${escapeHtml(x.userName)}<br>
+                    <i class="fas fa-cut"></i> Serviço: ${escapeHtml(x.service)}<br>
+                    <i class="fas fa-phone"></i> <small>${x.userId || 'N/E'}</small>
+                </div>
+            `).join('');
+        }
+
+        function logout() { window.location.href = 'index.html'; }
+
+        async function init() {
+            loadAllSettings();
+            await loadBarbeirosFromAPI();
+            renderBlockedDates((JSON.parse(localStorage.getItem('adminSettings') || '{}')).blockedDates || []);
+            await loadTodaysBookings();
+        }
         init();
     </script>
 </body>

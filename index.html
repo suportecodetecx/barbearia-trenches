@@ -483,7 +483,7 @@
         <section id="aboutus" class="section-about">
             <div class="container">
                 <div class="about-text">
-                    <!-- BARBEIROS - AGORA VEM PRIMEIRO, ANTES DO TÍTULO SOBRE -->
+                    <!-- BARBEIROS - VEM DO MONGODB (API) -->
                     <div class="barbeiros-section">
                         <div id="equipeBarbeiros" class="barbeiros-equipe-grid"></div>
                     </div>
@@ -807,22 +807,44 @@
             }
         }
         
-        function loadAllBarbeiros() {
-            const barbeiros = JSON.parse(localStorage.getItem('barbeiros') || '[]');
+        // FUNÇÃO ATUALIZADA: Buscar barbeiros da API (MongoDB)
+        async function loadAllBarbeiros() {
             const ec = document.getElementById('equipeBarbeiros');
-            if (ec) {
-                if (barbeiros.length > 0) {
-                    ec.innerHTML = barbeiros.map(b => `
-                        <div class="main-barber-card">
-                            <img src="${b.photo || 'images/avatar.png'}" alt="${b.name}" class="main-barber-photo" onerror="this.src='images/avatar.png'">
-                            <div class="main-barber-name">${b.name}</div>
-                            <div class="main-barber-role">BARBEIRO PROFISSIONAL</div>
-                        </div>
-                    `).join('');
+            if (!ec) return;
+            
+            ec.innerHTML = '<p>Carregando barbeiros...</p>';
+            
+            try {
+                const response = await fetch('/api/barbers');
+                if (response.ok) {
+                    const barbeiros = await response.json();
+                    if (barbeiros.length > 0) {
+                        ec.innerHTML = barbeiros.map(b => `
+                            <div class="main-barber-card">
+                                <img src="${b.photo || 'images/avatar.png'}" alt="${b.name}" class="main-barber-photo" onerror="this.src='images/avatar.png'">
+                                <div class="main-barber-name">${escapeHtml(b.name)}</div>
+                                <div class="main-barber-role">BARBEIRO PROFISSIONAL</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        ec.innerHTML = '<p>Nenhum barbeiro cadastrado ainda. Acesse o painel Gestor para adicionar.</p>';
+                    }
                 } else {
-                    ec.innerHTML = '<p>Nenhum barbeiro cadastrado</p>';
+                    console.error('Erro ao buscar barbeiros:', response.status);
+                    ec.innerHTML = '<p>Erro ao carregar barbeiros. Tente novamente mais tarde.</p>';
                 }
+            } catch (error) {
+                console.error('Erro ao carregar barbeiros:', error);
+                ec.innerHTML = '<p>Erro ao conectar com o servidor.</p>';
             }
+        }
+        
+        // Função auxiliar para escapar HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         function loadDynamicPrices() {
@@ -855,7 +877,7 @@
                     const m = durMin % 60;
                     durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
                 }
-                return '<div class="price-item"><div><span class="price-name">' + sv.name + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
+                return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
             }).join('');
         }
         
@@ -894,7 +916,7 @@
                 } catch(e) {}
             }
             loadDynamicPrices();
-            loadAllBarbeiros();
+            loadAllBarbeiros(); // Agora carrega da API
         }
         
         let currentUserAvatar = localStorage.getItem('currentUserAvatar') || 'images/avatar.png';

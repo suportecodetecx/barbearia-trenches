@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const connectDB = require('./connect');
 const User = require('./models/User');
 const Booking = require('./models/Booking');
+const Barber = require('./models/Barber');
 const path = require('path');
 
 const app = express();
@@ -36,6 +37,113 @@ app.get('/api', async (req, res) => {
     res.json({ message: 'API da Barbearia Trenches funcionando!' });
 });
 
+// ============ ROTAS DE BARBEIROS ============
+
+// Buscar todos os barbeiros
+app.get('/api/barbers', async (req, res) => {
+    try {
+        await ensureConnection();
+        const barbers = await Barber.find().sort({ createdAt: -1 });
+        console.log(`📋 ${barbers.length} barbeiros encontrados`);
+        res.json(barbers);
+    } catch (error) {
+        console.error('Erro ao buscar barbeiros:', error);
+        res.status(500).json({ error: 'Erro ao buscar barbeiros' });
+    }
+});
+
+// Buscar um barbeiro por ID
+app.get('/api/barbers/:id', async (req, res) => {
+    try {
+        await ensureConnection();
+        const barber = await Barber.findById(req.params.id);
+        if (!barber) {
+            return res.status(404).json({ error: 'Barbeiro não encontrado' });
+        }
+        res.json(barber);
+    } catch (error) {
+        console.error('Erro ao buscar barbeiro:', error);
+        res.status(500).json({ error: 'Erro ao buscar barbeiro' });
+    }
+});
+
+// Adicionar novo barbeiro
+app.post('/api/barbers', async (req, res) => {
+    try {
+        await ensureConnection();
+        const { name, photo } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ error: 'Nome é obrigatório' });
+        }
+        
+        const barber = new Barber({ 
+            name: name.trim(), 
+            photo: photo || 'images/avatar.png',
+            role: 'BARBEIRO PROFISSIONAL'
+        });
+        await barber.save();
+        
+        console.log('✅ Barbeiro adicionado:', name);
+        res.json({ message: 'Barbeiro adicionado com sucesso!', barber });
+    } catch (error) {
+        console.error('Erro ao adicionar barbeiro:', error);
+        res.status(500).json({ error: 'Erro ao adicionar barbeiro' });
+    }
+});
+
+// Atualizar barbeiro
+app.put('/api/barbers/:id', async (req, res) => {
+    try {
+        await ensureConnection();
+        const { name, photo } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ error: 'Nome é obrigatório' });
+        }
+        
+        const barber = await Barber.findByIdAndUpdate(
+            req.params.id,
+            { 
+                name: name.trim(), 
+                photo: photo || 'images/avatar.png',
+                role: 'BARBEIRO PROFISSIONAL'
+            },
+            { new: true }
+        );
+        
+        if (!barber) {
+            return res.status(404).json({ error: 'Barbeiro não encontrado' });
+        }
+        
+        console.log('✏️ Barbeiro atualizado:', barber.name);
+        res.json({ message: 'Barbeiro atualizado!', barber });
+    } catch (error) {
+        console.error('Erro ao atualizar barbeiro:', error);
+        res.status(500).json({ error: 'Erro ao atualizar barbeiro' });
+    }
+});
+
+// Deletar barbeiro
+app.delete('/api/barbers/:id', async (req, res) => {
+    try {
+        await ensureConnection();
+        const barber = await Barber.findByIdAndDelete(req.params.id);
+        
+        if (!barber) {
+            return res.status(404).json({ error: 'Barbeiro não encontrado' });
+        }
+        
+        console.log('🗑️ Barbeiro removido:', barber.name);
+        res.json({ message: 'Barbeiro removido com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao remover barbeiro:', error);
+        res.status(500).json({ error: 'Erro ao remover barbeiro' });
+    }
+});
+
+// ============ ROTAS DE USUÁRIOS ============
+
 // Cadastro
 app.post('/api/register', async (req, res) => {
     try {
@@ -51,6 +159,7 @@ app.post('/api/register', async (req, res) => {
         const user = new User({ name, phone, password: hashedPassword });
         await user.save();
         
+        console.log('📝 Novo usuário cadastrado:', name);
         res.json({ message: 'Cadastro realizado com sucesso!' });
     } catch (error) {
         console.error('Erro no cadastro:', error);
@@ -63,21 +172,21 @@ app.post('/api/login', async (req, res) => {
     try {
         await ensureConnection();
         const { phone, password } = req.body;
-        console.log('Tentativa de login:', phone);
+        console.log('🔐 Tentativa de login:', phone);
         
         const user = await User.findOne({ phone });
         if (!user) {
-            console.log('Usuario nao encontrado:', phone);
+            console.log('❌ Usuario nao encontrado:', phone);
             return res.status(400).json({ error: 'Celular nao encontrado' });
         }
         
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            console.log('Senha incorreta para:', phone);
+            console.log('❌ Senha incorreta para:', phone);
             return res.status(400).json({ error: 'Senha incorreta' });
         }
         
-        console.log('Login bem-sucedido:', user.name);
+        console.log('✅ Login bem-sucedido:', user.name);
         
         res.json({ 
             user: { 
@@ -115,7 +224,7 @@ app.post('/api/admin/reset-password', async (req, res) => {
             return res.status(404).json({ error: 'Usuario nao encontrado' });
         }
         
-        console.log('Senha resetada para:', phone);
+        console.log('🔑 Senha resetada para:', phone);
         
         res.json({ 
             message: 'Senha resetada com sucesso!',
@@ -148,7 +257,7 @@ app.post('/api/admin/update-phone', async (req, res) => {
             return res.status(404).json({ error: 'Usuario nao encontrado' });
         }
         
-        console.log('Telefone atualizado:', oldPhone, '->', newPhone);
+        console.log('📞 Telefone atualizado:', oldPhone, '->', newPhone);
         
         res.json({ 
             message: 'Telefone atualizado com sucesso!',
@@ -160,28 +269,7 @@ app.post('/api/admin/update-phone', async (req, res) => {
     }
 });
 
-// Criar admin fixo se nao existir
-async function createAdminIfNeeded() {
-    try {
-        await ensureConnection();
-        const adminExists = await User.findOne({ phone: '11999999999' });
-        if (!adminExists) {
-            const hashedPassword = await bcrypt.hash('admin123', 10);
-            const admin = new User({
-                name: 'Administrador',
-                phone: '11999999999',
-                password: hashedPassword,
-                isAdmin: true
-            });
-            await admin.save();
-            console.log('Admin criado: 11999999999 / admin123');
-        } else {
-            console.log('Admin ja existe');
-        }
-    } catch (error) {
-        console.error('Erro ao criar admin:', error);
-    }
-}
+// ============ ROTAS DE RESERVAS ============
 
 // Reserva
 app.post('/api/booking', async (req, res) => {
@@ -197,7 +285,7 @@ app.post('/api/booking', async (req, res) => {
         const booking = new Booking({ userId, userName, service, date, time });
         await booking.save();
         
-        console.log('Reserva criada:', date, time, '-', userName);
+        console.log('📅 Reserva criada:', date, time, '-', userName);
         res.json({ message: 'Reserva confirmada!', booking });
     } catch (error) {
         console.error('Erro ao criar reserva:', error);
@@ -210,7 +298,7 @@ app.get('/api/bookings/all', async (req, res) => {
     try {
         await ensureConnection();
         const bookings = await Booking.find().sort({ date: 1, time: 1 });
-        console.log('Encontradas', bookings.length, 'reservas');
+        console.log('📋 Encontradas', bookings.length, 'reservas');
         res.json(bookings);
     } catch (error) {
         console.error('Erro ao buscar reservas:', error);
@@ -230,20 +318,14 @@ app.get('/api/bookings/:phone', async (req, res) => {
     }
 });
 
-// Inicializar
-(async () => {
-    await ensureConnection();
-    await createAdminIfNeeded();
-})();
-// ============ ESQUECI MINHA SENHA - PARA USUÁRIOS ============
+// ============ ESQUECI MINHA SENHA ============
 app.post('/api/forgot-password', async (req, res) => {
     try {
         await ensureConnection();
         const { action, telefone, novaSenha } = req.body;
         
-        console.log('📞 Forgot password request:', { action, telefone });
+        console.log('🔐 Forgot password request:', { action, telefone });
         
-        // BUSCAR USUÁRIO POR TELEFONE
         if (action === 'find') {
             if (!telefone) {
                 return res.status(400).json({ 
@@ -252,10 +334,7 @@ app.post('/api/forgot-password', async (req, res) => {
                 });
             }
             
-            // Buscar por telefone exato
             let user = await User.findOne({ phone: telefone });
-            
-            // Se não encontrou, tentar buscar sem formatação (apenas números)
             if (!user) {
                 const apenasNumeros = telefone.replace(/\D/g, '');
                 user = await User.findOne({ phone: apenasNumeros });
@@ -277,7 +356,6 @@ app.post('/api/forgot-password', async (req, res) => {
             }
         }
         
-        // ALTERAR SENHA
         if (action === 'reset') {
             if (!telefone || !novaSenha) {
                 return res.status(400).json({ 
@@ -293,9 +371,7 @@ app.post('/api/forgot-password', async (req, res) => {
                 });
             }
             
-            // Buscar o usuário primeiro
             let user = await User.findOne({ phone: telefone });
-            
             if (!user) {
                 const apenasNumeros = telefone.replace(/\D/g, '');
                 user = await User.findOne({ phone: apenasNumeros });
@@ -308,10 +384,7 @@ app.post('/api/forgot-password', async (req, res) => {
                 });
             }
             
-            // Hash da nova senha
             const hashedPassword = await bcrypt.hash(novaSenha, 10);
-            
-            // Atualizar a senha
             user.password = hashedPassword;
             await user.save();
             
@@ -336,5 +409,34 @@ app.post('/api/forgot-password', async (req, res) => {
         });
     }
 });
+
+// Criar admin fixo se nao existir
+async function createAdminIfNeeded() {
+    try {
+        await ensureConnection();
+        const adminExists = await User.findOne({ phone: '11999999999' });
+        if (!adminExists) {
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const admin = new User({
+                name: 'Administrador',
+                phone: '11999999999',
+                password: hashedPassword,
+                isAdmin: true
+            });
+            await admin.save();
+            console.log('👑 Admin criado: 11999999999 / admin123');
+        } else {
+            console.log('👑 Admin ja existe');
+        }
+    } catch (error) {
+        console.error('Erro ao criar admin:', error);
+    }
+}
+
+// Inicializar
+(async () => {
+    await ensureConnection();
+    await createAdminIfNeeded();
+})();
 
 module.exports = app;
