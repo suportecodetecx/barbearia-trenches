@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -63,7 +64,6 @@
             .admin-grid { grid-template-columns: 1fr; gap: 15px; }
         }
 
-        /* Card de Reservas - Destaque */
         .admin-card.reservas-card {
             order: -1;
             border: 2px solid var(--blue-primary);
@@ -316,7 +316,6 @@
         </div>
 
         <div class="admin-grid">
-            <!-- Card de Reservas - PRIMEIRO (destaque) -->
             <div class="admin-card reservas-card">
                 <h2><i class="fas fa-calendar-alt"></i> RESERVAS DO DIA</h2>
                 <div class="reservas-header">
@@ -327,7 +326,6 @@
                 <button class="btn-primary-card" onclick="loadTodaysBookings()"><i class="fas fa-sync-alt"></i> ATUALIZAR</button>
             </div>
 
-            <!-- Cards de Configuração -->
             <div class="admin-card">
                 <h2><i class="fas fa-tag"></i> PREÇOS DOS SERVIÇOS</h2>
                 <div id="servicesContainer"></div>
@@ -383,51 +381,42 @@ Mogi das Cruzes - SP</textarea></div>
     <script>
         const API_URL = '';
         let allBookings = [], currentPhotoPreview = null;
-        let editBarberIndex = null, editPhotoPreview = null, deleteBarberId = null;
+        let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
 
         function showToast(t,m){document.getElementById('toastTitle').textContent=t;document.getElementById('toastText').textContent=m;document.getElementById('toastOverlay').classList.add('show');}
         function closeToast(){document.getElementById('toastOverlay').classList.remove('show');}
         document.addEventListener('DOMContentLoaded',function(){document.getElementById('toastOverlay').addEventListener('click',function(e){if(e.target===this)closeToast();});});
 
         // ========== BARBEIROS - API (MongoDB) ==========
-        let barbeiros = [];
-
-        async function loadBarbeirosFromAPI() {
+        async function loadBarbeiros() {
             try {
                 const response = await fetch(API_URL + '/api/barbers');
                 if (response.ok) {
-                    barbeiros = await response.json();
-                    renderBarbeiros();
+                    const barbeiros = await response.json();
+                    renderBarbeiros(barbeiros);
                 } else {
-                    console.error('Erro ao carregar barbeiros:', response.status);
-                    showToast('Erro', 'Não foi possível carregar os barbeiros.');
+                    console.error('Erro ao carregar barbeiros');
                 }
             } catch (error) {
-                console.error('Erro ao carregar barbeiros:', error);
-                showToast('Erro', 'Erro de conexão com o servidor.');
+                console.error('Erro:', error);
             }
         }
 
-        async function addBarbeiroToAPI(name, photo) {
+        async function addBarbeiroAPI(name, photo) {
             try {
                 const response = await fetch(API_URL + '/api/barbers', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
                 });
-                
                 if (response.ok) {
-                    await loadBarbeirosFromAPI();
-                    showToast('Barbeiro Adicionado', name + ' foi adicionado!');
+                    await loadBarbeiros();
+                    showToast('Sucesso', name + ' adicionado!');
                     return true;
-                } else {
-                    const error = await response.json();
-                    showToast('Erro', error.error || 'Não foi possível adicionar.');
-                    return false;
                 }
+                return false;
             } catch (error) {
                 console.error('Erro:', error);
-                showToast('Erro', 'Erro de conexão.');
                 return false;
             }
         }
@@ -439,52 +428,62 @@ Mogi das Cruzes - SP</textarea></div>
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
                 });
-                
                 if (response.ok) {
-                    await loadBarbeirosFromAPI();
-                    showToast('Barbeiro Atualizado', 'Nome e foto atualizados.');
+                    await loadBarbeiros();
+                    showToast('Sucesso', 'Barbeiro atualizado!');
                     return true;
                 }
                 return false;
             } catch (error) {
                 console.error('Erro:', error);
-                showToast('Erro', 'Erro de conexão.');
                 return false;
             }
         }
 
         async function deleteBarbeiroAPI(id) {
             try {
-                const response = await fetch(API_URL + '/api/barbers/' + id, {
-                    method: 'DELETE'
-                });
-                
+                const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' });
                 if (response.ok) {
-                    await loadBarbeirosFromAPI();
-                    showToast('Barbeiro Removido', 'Removido com sucesso.');
+                    await loadBarbeiros();
+                    showToast('Sucesso', 'Barbeiro removido!');
                     return true;
                 }
                 return false;
             } catch (error) {
                 console.error('Erro:', error);
-                showToast('Erro', 'Erro de conexão.');
                 return false;
             }
         }
 
-        // Funções UI para barbeiros
-        function openEditModal(i) {
-            editBarberIndex = i;
+        function renderBarbeiros(barbeiros) {
+            const container = document.getElementById('barbeirosList');
+            if (!container) return;
+            if (!barbeiros || barbeiros.length === 0) {
+                container.innerHTML = '<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>';
+                return;
+            }
+            container.innerHTML = barbeiros.map(b => `
+                <div class="barbeiro-item">
+                    <img src="${b.photo || 'images/avatar.png'}" onerror="this.src='images/avatar.png'">
+                    <div class="barbeiro-info"><strong>${escapeHtml(b.name)}</strong></div>
+                    <button onclick="openEditModal('${b._id}', '${escapeHtml(b.name)}', '${b.photo || ''}')" style="background:#ff9800;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;color:black;"><i class="fas fa-edit"></i></button>
+                    <button onclick="openDeleteModal('${b._id}', '${escapeHtml(b.name)}')" class="btn-danger">X</button>
+                </div>
+            `).join('');
+        }
+
+        function openEditModal(id, name, photo) {
+            editBarberId = id;
             editPhotoPreview = null;
-            document.getElementById('editBarberName').value = barbeiros[i].name;
-            document.getElementById('editPhotoPreview').innerHTML = '';
+            document.getElementById('editBarberName').value = name;
+            document.getElementById('editPhotoPreview').innerHTML = photo ? '<img src="' + photo + '" class="preview-image">' : '';
             document.getElementById('editBarberPhoto').value = '';
             document.getElementById('editBarberModal').classList.add('show');
         }
 
         function closeEditModal() {
             document.getElementById('editBarberModal').classList.remove('show');
-            editBarberIndex = null;
+            editBarberId = null;
             editPhotoPreview = null;
         }
 
@@ -502,20 +501,16 @@ Mogi das Cruzes - SP</textarea></div>
 
         function saveEditBarber() {
             const newName = document.getElementById('editBarberName').value.trim();
-            if (!newName) {
-                showToast('Atenção', 'Digite um nome.');
-                return;
-            }
-            if (editBarberIndex !== null) {
-                const barber = barbeiros[editBarberIndex];
-                updateBarbeiroAPI(barber._id, newName, editPhotoPreview || barber.photo);
+            if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
+            if (editBarberId) {
+                updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
             }
             closeEditModal();
         }
 
         function openDeleteModal(id, name) {
             deleteBarberId = id;
-            document.getElementById('deleteText').textContent = 'Tem certeza que deseja remover ' + name + '?';
+            document.getElementById('deleteText').textContent = 'Remover ' + name + '?';
             document.getElementById('deleteConfirmModal').classList.add('show');
         }
 
@@ -524,20 +519,16 @@ Mogi das Cruzes - SP</textarea></div>
             deleteBarberId = null;
         }
 
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        document.getElementById('confirmDeleteBtn').onclick = function() {
             if (deleteBarberId) {
                 deleteBarbeiroAPI(deleteBarberId);
                 deleteBarberId = null;
                 closeDeleteModal();
             }
-        });
+        };
 
-        document.getElementById('editBarberModal').addEventListener('click', function(e) {
-            if (e.target === this) closeEditModal();
-        });
-        document.getElementById('deleteConfirmModal').addEventListener('click', function(e) {
-            if (e.target === this) closeDeleteModal();
-        });
+        document.getElementById('editBarberModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+        document.getElementById('deleteConfirmModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
 
         function previewPhoto(input) {
             const f = input.files[0];
@@ -553,36 +544,13 @@ Mogi das Cruzes - SP</textarea></div>
 
         function addBarbeiro() {
             const name = document.getElementById('barbeiroName').value.trim();
-            if (!name) {
-                showToast('Atenção', 'Digite o nome.');
-                return;
-            }
-            if (!currentPhotoPreview) {
-                showToast('Atenção', 'Selecione uma foto.');
-                return;
-            }
-            addBarbeiroToAPI(name, currentPhotoPreview);
+            if (!name) { showToast('Atenção', 'Digite o nome.'); return; }
+            if (!currentPhotoPreview) { showToast('Atenção', 'Selecione uma foto.'); return; }
+            addBarbeiroAPI(name, currentPhotoPreview);
             document.getElementById('barbeiroName').value = '';
             document.getElementById('previewContainer').innerHTML = '';
             currentPhotoPreview = null;
             document.getElementById('barbeiroPhoto').value = '';
-        }
-
-        function renderBarbeiros() {
-            const c = document.getElementById('barbeirosList');
-            if (!c) return;
-            if (barbeiros.length === 0) {
-                c.innerHTML = '<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>';
-                return;
-            }
-            c.innerHTML = barbeiros.map(b => `
-                <div class="barbeiro-item">
-                    <img src="${b.photo || 'images/avatar.png'}" onerror="this.src='images/avatar.png'">
-                    <div class="barbeiro-info"><strong>${escapeHtml(b.name)}</strong></div>
-                    <button onclick="openEditModal(${barbeiros.indexOf(b)})" style="background:#ff9800;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;color:black;"><i class="fas fa-edit"></i></button>
-                    <button onclick="openDeleteModal('${b._id}', '${escapeHtml(b.name)}')" class="btn-danger">X</button>
-                </div>
-            `).join('');
         }
 
         function escapeHtml(text) {
@@ -657,10 +625,7 @@ Mogi das Cruzes - SP</textarea></div>
 
         function removeService(i) {
             const s = getServices();
-            if (s.length <= 1) {
-                showToast('Atenção', 'Mantenha pelo menos um serviço.');
-                return;
-            }
+            if (s.length <= 1) { showToast('Atenção', 'Mantenha pelo menos um serviço.'); return; }
             s.splice(i, 1);
             window._tempServices = s;
             renderServices();
@@ -738,10 +703,7 @@ Mogi das Cruzes - SP</textarea></div>
         function renderBlockedDates(d) {
             const c = document.getElementById('blockedDatesTags');
             if (!c) return;
-            if (d.length === 0) {
-                c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>';
-                return;
-            }
+            if (d.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>'; return; }
             c.innerHTML = d.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');
         }
 
@@ -765,9 +727,7 @@ Mogi das Cruzes - SP</textarea></div>
                     displayBookings(allBookings);
                     document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas';
                 }
-            } catch(e) {
-                c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>';
-            }
+            } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
         }
 
         async function loadTodaysBookings() {
@@ -781,18 +741,13 @@ Mogi das Cruzes - SP</textarea></div>
                     displayBookings(b.filter(x => x.date === today));
                     document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')';
                 }
-            } catch(e) {
-                c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>';
-            }
+            } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
         }
 
         function filterBookings() {
             const m = document.getElementById('filterMonth').value, y = document.getElementById('filterYear').value;
             if (!m) { showToast('Atenção', 'Selecione um mês.'); return; }
-            const f = allBookings.filter(b => {
-                const [by, bm] = b.date.split('-');
-                return by === y && bm === m;
-            });
+            const f = allBookings.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; });
             const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             displayBookings(f);
             document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y;
@@ -801,11 +756,7 @@ Mogi das Cruzes - SP</textarea></div>
         function displayBookings(b) {
             const c = document.getElementById('bookingsList'), ce = document.getElementById('reservasCount');
             if (!c) return;
-            if (b.length === 0) {
-                c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>';
-                ce.textContent = '0 reservas';
-                return;
-            }
+            if (b.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>'; ce.textContent = '0 reservas'; return; }
             b.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
             ce.textContent = b.length + ' reserva' + (b.length !== 1 ? 's' : '');
             c.innerHTML = b.map(x => `
@@ -822,7 +773,7 @@ Mogi das Cruzes - SP</textarea></div>
 
         async function init() {
             loadAllSettings();
-            await loadBarbeirosFromAPI();
+            await loadBarbeiros();
             renderBlockedDates((JSON.parse(localStorage.getItem('adminSettings') || '{}')).blockedDates || []);
             await loadTodaysBookings();
         }
