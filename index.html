@@ -545,6 +545,8 @@
     
     <script>
         let currentUser = null;
+        let barbeirosCache = null; // Cache para evitar pisca-pisca
+        let isLoadingBarbeiros = false;
         
         // Menu mobile - icone tres riscos
         const menuToggle = document.getElementById('menuToggle');
@@ -562,15 +564,12 @@
                 const targetId = this.getAttribute('href');
                 if (targetId && targetId !== '#') {
                     e.preventDefault();
-                    // Fechar o menu
                     menuMobile.classList.remove('active');
-                    // Rolar para a seção
                     const targetElement = document.querySelector(targetId);
                     if (targetElement) {
                         targetElement.scrollIntoView({ behavior: 'smooth' });
                     }
                 } else if (targetId === '#') {
-                    // Para o link Reservas, apenas fechar o menu
                     menuMobile.classList.remove('active');
                 }
             });
@@ -807,17 +806,22 @@
             }
         }
         
-        // FUNÇÃO ATUALIZADA: Buscar barbeiros da API (MongoDB)
+        // FUNÇÃO CORRIGIDA: Buscar barbeiros da API (MongoDB) - SEM PISCA-PISCA
         async function loadAllBarbeiros() {
             const ec = document.getElementById('equipeBarbeiros');
             if (!ec) return;
             
-            ec.innerHTML = '<p>Carregando barbeiros...</p>';
+            // Se já está carregando, não faz nada
+            if (isLoadingBarbeiros) return;
+            
+            isLoadingBarbeiros = true;
             
             try {
                 const response = await fetch('/api/barbers');
                 if (response.ok) {
                     const barbeiros = await response.json();
+                    barbeirosCache = barbeiros;
+                    
                     if (barbeiros.length > 0) {
                         ec.innerHTML = barbeiros.map(b => `
                             <div class="main-barber-card">
@@ -827,19 +831,24 @@
                             </div>
                         `).join('');
                     } else {
-                        ec.innerHTML = '<p>Nenhum barbeiro cadastrado ainda. Acesse o painel Gestor para adicionar.</p>';
+                        ec.innerHTML = '<p>Nenhum barbeiro cadastrado ainda.</p>';
                     }
                 } else {
                     console.error('Erro ao buscar barbeiros:', response.status);
-                    ec.innerHTML = '<p>Erro ao carregar barbeiros. Tente novamente mais tarde.</p>';
+                    if (barbeirosCache === null) {
+                        ec.innerHTML = '<p>Erro ao carregar barbeiros.</p>';
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao carregar barbeiros:', error);
-                ec.innerHTML = '<p>Erro ao conectar com o servidor.</p>';
+                if (barbeirosCache === null) {
+                    ec.innerHTML = '<p>Erro ao conectar com o servidor.</p>';
+                }
+            } finally {
+                isLoadingBarbeiros = false;
             }
         }
         
-        // Função auxiliar para escapar HTML
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -916,7 +925,7 @@
                 } catch(e) {}
             }
             loadDynamicPrices();
-            loadAllBarbeiros(); // Agora carrega da API
+            loadAllBarbeiros();
         }
         
         let currentUserAvatar = localStorage.getItem('currentUserAvatar') || 'images/avatar.png';
@@ -966,7 +975,6 @@
             loadCurrentUser();
             initForgotPassword();
             
-            // Desktop buttons
             document.getElementById('loginBtn').addEventListener('click', () => {
                 document.getElementById('authModal').style.display = 'block';
             });
@@ -975,7 +983,6 @@
                 logout();
             });
             
-            // Mobile buttons
             const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
             if (mobileLogoutBtn) {
                 mobileLogoutBtn.addEventListener('click', () => {
@@ -1102,11 +1109,8 @@
             updateHeaderAvatar();
             
             loadAllSettings();
-            setInterval(loadAllSettings, 5000);
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'barbeiros' || e.key === 'adminSettings') loadAllSettings();
-            });
             
+            // Carregar calendário após os barbeiros (para não travar)
             setTimeout(() => {
                 if (typeof initCalendar === 'function') {
                     initCalendar();
