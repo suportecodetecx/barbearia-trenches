@@ -66,7 +66,7 @@ function isDateAvailable(date) {
     return true;
 }
 
-// Gerar horarios disponiveis
+// Gerar horarios disponiveis - CORRIGIDO
 function getAvailableTimes(date, bookings) {
     const dayOfWeek = date.getDay();
     const horario = HORARIO_FUNCIONAMENTO[dayOfWeek];
@@ -82,23 +82,44 @@ function getAvailableTimes(date, bookings) {
     const bookingsToday = bookings.filter(b => b.date === dateStr);
     const horariosReservados = bookingsToday.map(b => b.time);
     
+    // Margem de segurança para evitar agendamentos em cima da hora (30 minutos)
+    const MINUTOS_ANTECEDENCIA = 30;
+    
     for (let hour = horario.start; hour < horario.end; hour++) {
+        // Horário cheio (09:00, 10:00, etc)
         const timeFull = `${String(hour).padStart(2, '0')}:00`;
         let isPast = false;
         if (isToday) {
-            if (hour < currentHour) isPast = true;
-            else if (hour === currentHour && currentMinute > 30) isPast = true;
+            // Verificar se o horário já passou (considerando 30 min de antecedência)
+            if (hour < currentHour) {
+                isPast = true;
+            } else if (hour === currentHour) {
+                // Se for o mesmo horário, verificar se já passou dos 30 min de antecedência
+                if (currentMinute + MINUTOS_ANTECEDENCIA >= 60) {
+                    // Se ultrapassar a hora, considerar como horário seguinte
+                    isPast = true;
+                } else if (currentMinute + MINUTOS_ANTECEDENCIA >= 0) {
+                    isPast = true;
+                }
+            }
         }
         if (!isPast && !horariosReservados.includes(timeFull)) {
             times.push(timeFull);
         }
         
+        // Meia hora (09:30, 10:30, etc)
         if (hour + 0.5 < horario.end) {
             const timeHalf = `${String(hour).padStart(2, '0')}:30`;
             let isPastHalf = false;
             if (isToday) {
-                if (hour < currentHour) isPastHalf = true;
-                else if (hour === currentHour && currentMinute > 0) isPastHalf = true;
+                if (hour < currentHour) {
+                    isPastHalf = true;
+                } else if (hour === currentHour) {
+                    // Verifica se já passou dos 30 min de antecedência para meia hora
+                    if (30 + MINUTOS_ANTECEDENCIA <= currentMinute) {
+                        isPastHalf = true;
+                    }
+                }
             }
             if (!isPastHalf && !horariosReservados.includes(timeHalf)) {
                 times.push(timeHalf);
@@ -434,7 +455,7 @@ async function initCalendar() {
         newConfirmBtn.disabled = true;
     }
     
-    console.log('Calendario inicializado - Datas bloqueadas: ' + getBlockedDates().join(', '));
+    console.log('Calendario inicializado - Dias fechados: Domingo, Segunda e datas bloqueadas');
 }
 
 window.initCalendar = initCalendar;
