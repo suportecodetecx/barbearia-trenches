@@ -11,11 +11,11 @@ const DIAS_FECHADOS = [0, 1];
 const HORARIO_FUNCIONAMENTO = {
     0: null,     // Domingo - Fechado
     1: null,     // Segunda - Fechado
-    2: { start: 9, end: 20 },   // Terca - 09h as 20h
-    3: { start: 9, end: 20 },   // Quarta - 09h as 20h
-    4: { start: 9, end: 21 },   // Quinta - 09h as 21h
-    5: { start: 9, end: 21 },   // Sexta - 09h as 21h
-    6: { start: 9, end: 18 }    // Sabado - 09h as 18h
+    2: { start: 9, end: 18.5 },   // Terca - 09h as 18:30
+    3: { start: 9, end: 18.5 },   // Quarta - 09h as 18:30
+    4: { start: 9, end: 18.5 },   // Quinta - 09h as 18:30
+    5: { start: 9, end: 18.5 },   // Sexta - 09h as 18:30
+    6: { start: 9, end: 18.5 }    // Sabado - 09h as 18:30
 };
 
 function formatDateStr(date) {
