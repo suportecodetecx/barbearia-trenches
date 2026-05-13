@@ -428,6 +428,7 @@ Mogi das Cruzes - SP</textarea></div>
         let allBookings = [], currentPhotoPreview = null;
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
+        let deleteBarbeiroAPI = null;
 
         // ========== FUNÇÕES DE REDIMENSIONAMENTO DE IMAGEM ==========
         async function resizeImage(file, maxWidth = 500, maxHeight = 500, quality = 0.7) {
@@ -577,7 +578,7 @@ Mogi das Cruzes - SP</textarea></div>
                 const result = await response.json();
                 console.log('📥 Resposta do servidor:', result);
                 
-                if (response.ok) {
+                if (response.ok && result.success) {
                     showToast('Reserva Cancelada', 'A reserva foi removida com sucesso!');
                     await loadTodaysBookings();
                     return true;
@@ -718,13 +719,35 @@ Mogi das Cruzes - SP</textarea></div>
             }
         }
 
+        // ========== FUNÇÃO CORRIGIDA PARA ATUALIZAR BARBEIRO ==========
         async function updateBarbeiroAPI(id, name, photo) {
             try {
+                let photoToSend = photo;
+                
+                if (!photoToSend) {
+                    const response = await fetch(API_URL + '/api/barbers');
+                    if (response.ok) {
+                        const barbeiros = await response.json();
+                        const barbeiroAtual = barbeiros.find(b => b._id === id);
+                        if (barbeiroAtual && barbeiroAtual.photo) {
+                            photoToSend = barbeiroAtual.photo;
+                            console.log('📸 Mantendo foto existente do barbeiro');
+                        } else {
+                            photoToSend = 'images/avatar.png';
+                        }
+                    } else {
+                        photoToSend = 'images/avatar.png';
+                    }
+                }
+                
+                console.log('📤 Atualizando barbeiro:', { id, name, temFoto: !!photoToSend });
+                
                 const response = await fetch(API_URL + '/api/barbers/' + id, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
+                    body: JSON.stringify({ name: name.trim(), photo: photoToSend })
                 });
+                
                 if (response.ok) {
                     await loadBarbeiros();
                     showToast('Sucesso', 'Barbeiro atualizado!');
@@ -732,11 +755,13 @@ Mogi das Cruzes - SP</textarea></div>
                 }
                 return false;
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('Erro ao atualizar:', error);
+                showToast('Erro', 'Não foi possível atualizar barbeiro');
                 return false;
             }
         }
 
+        // ========== FUNÇÃO PARA DELETAR BARBEIRO ==========
         async function deleteBarbeiroAPI(id) {
             try {
                 const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' });
