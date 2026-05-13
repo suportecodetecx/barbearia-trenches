@@ -27,6 +27,9 @@ let servicosCache = [];
 // Cache para duracoes (construido a partir dos servicos)
 let serviceDurations = {};
 
+// Cache para horario de almoco
+let almocoConfig = { inicio: '12:00', fim: '13:00', dias: [2, 3, 4, 5, 6] };
+
 function formatDateStr(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -34,6 +37,43 @@ function formatDateStr(date) {
 function formatDateDisplay(date) {
     const dias = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'];
     return `${dias[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+// Carregar horario de almoco do backend
+async function loadAlmocoConfig() {
+    try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+            const settings = await response.json();
+            if (settings.almoco) {
+                almocoConfig = settings.almoco;
+                console.log('🍽️ Horário de almoço carregado:', almocoConfig);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar horário de almoço:', error);
+    }
+}
+
+// Verificar se um horario esta dentro do intervalo de almoco
+function isAlmocoTime(dayOfWeek, hour, minute) {
+    // Verificar se o dia tem almoco
+    if (!almocoConfig.dias || !almocoConfig.dias.includes(dayOfWeek)) {
+        return false;
+    }
+    
+    // Converter horario atual para minutos
+    const timeMinutes = hour * 60 + minute;
+    
+    // Converter inicio e fim do almoco para minutos
+    const [inicioHour, inicioMinute] = (almocoConfig.inicio || '12:00').split(':').map(Number);
+    const [fimHour, fimMinute] = (almocoConfig.fim || '13:00').split(':').map(Number);
+    
+    const inicioMinutes = inicioHour * 60 + inicioMinute;
+    const fimMinutes = fimHour * 60 + fimMinute;
+    
+    // Verificar se esta dentro do intervalo de almoco (incluindo tempo de limpeza)
+    return timeMinutes >= inicioMinutes - 5 && timeMinutes <= fimMinutes - 5;
 }
 
 // Carregar servicos do backend (MongoDB)
@@ -149,7 +189,7 @@ function getSelectedService() {
     return serviceSelect ? serviceSelect.value : 'Cabelo';
 }
 
-// Gerar horarios disponiveis - DINAMICO
+// Gerar horarios disponiveis - DINAMICO (incluindo bloqueio de almoco)
 function getAvailableTimes(date, bookings) {
     const dayOfWeek = date.getDay();
     const horario = HORARIO_FUNCIONAMENTO[dayOfWeek];
@@ -190,11 +230,23 @@ function getAvailableTimes(date, bookings) {
                 }
             }
             
+            // VERIFICAR HORÁRIO DE ALMOÇO
+            if (isAlmocoTime(dayOfWeek, hour, minute)) {
+                continue; // Bloquear horario de almoco
+            }
+            
             // Verificar se o servico cabe no expediente
             const endTimeMinutes = timeMinutes + duracaoServico;
             const expedienteEnd = horario.end * 60;
             if (endTimeMinutes > expedienteEnd) {
                 continue;
+            }
+            
+            // Verificar se o servico termina durante o almoco
+            const endHour = Math.floor(endTimeMinutes / 60);
+            const endMinute = endTimeMinutes % 60;
+            if (isAlmocoTime(dayOfWeek, endHour, endMinute)) {
+                continue; // Servico terminaria durante o almoco
             }
             
             // Verificar conflito com reservas existentes
@@ -587,6 +639,9 @@ async function initCalendar() {
     selectedDate = null;
     selectedTime = null;
     
+    // Carregar configuracao do almoco
+    await loadAlmocoConfig();
+    
     // Carregar servicos do MongoDB primeiro
     await loadServices();
     await loadAllBookings();
@@ -624,6 +679,7 @@ async function initCalendar() {
     }
     
     console.log('Calendario inicializado com servicos:', servicosCache.map(s => s.name).join(', '));
+    console.log('🍽️ Horário de almoço:', almocoConfig);
 }
 
 window.initCalendar = initCalendar;
