@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose'); // ADICIONADO para ObjectId
 const connectDB = require('./connect');
 const User = require('./models/User');
 const Booking = require('./models/Booking');
@@ -11,7 +12,7 @@ const path = require('path');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // AUMENTADO para fotos
 
 // ============ SERVIR ARQUIVOS ESTÁTICOS ============
 app.use(express.static(path.join(__dirname, '..')));
@@ -396,6 +397,95 @@ app.get('/api/bookings/:phone', async (req, res) => {
     }
 });
 
+// ============ ROTA PARA DELETAR RESERVA (CORRIGIDA) ============
+app.post('/api/delete-booking', async (req, res) => {
+    try {
+        await ensureConnection();
+        const { id, date, time, userId, userName } = req.body;
+        
+        console.log('🗑️ Tentando deletar reserva:', { id, date, time, userId, userName });
+        
+        let result = { deletedCount: 0 };
+        
+        // MÉTODO 1: Tentar deletar pelo _id (MAIS PRECISO)
+        if (id && mongoose.Types.ObjectId.isValid(id)) {
+            console.log('🔍 Tentando deletar por _id:', id);
+            result = await Booking.deleteOne({ _id: new mongoose.Types.ObjectId(id) });
+            console.log('📊 Resultado por _id:', result);
+        }
+        
+        // MÉTODO 2: Se falhou, tentar por date + time + userId
+        if (result.deletedCount === 0 && date && time && userId) {
+            console.log('🔍 Tentando deletar por date + time + userId');
+            result = await Booking.deleteOne({ date, time, userId });
+            console.log('📊 Resultado por data/hora/usuario:', result);
+        }
+        
+        // MÉTODO 3: Tentar só por date + time (última tentativa)
+        if (result.deletedCount === 0 && date && time) {
+            console.log('🔍 Tentando deletar só por date + time');
+            result = await Booking.deleteOne({ date, time });
+            console.log('📊 Resultado por data/hora:', result);
+        }
+        
+        // MÉTODO 4: Tentar por userName (fallback final)
+        if (result.deletedCount === 0 && userName && date && time) {
+            console.log('🔍 Tentando deletar por userName');
+            result = await Booking.deleteOne({ userName, date, time });
+            console.log('📊 Resultado por nome:', result);
+        }
+        
+        if (result.deletedCount === 1) {
+            console.log('✅ Reserva deletada com sucesso!');
+            return res.json({ 
+                success: true, 
+                message: 'Reserva deletada com sucesso!',
+                deletedCount: result.deletedCount 
+            });
+        } else {
+            console.log('❌ Nenhuma reserva encontrada para deletar');
+            return res.json({ 
+                success: false, 
+                message: 'Reserva não encontrada',
+                deletedCount: 0
+            });
+        }
+    } catch (error) {
+        console.error('❌ Erro ao deletar:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============ ROTA DELETE POR ID (ALTERNATIVA) ============
+app.delete('/api/delete-booking/:id', async (req, res) => {
+    try {
+        await ensureConnection();
+        const { id } = req.params;
+        
+        console.log('🗑️ DELETE request para ID:', id);
+        
+        let result;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            result = await Booking.deleteOne({ _id: new mongoose.Types.ObjectId(id) });
+        } else {
+            result = await Booking.deleteOne({ _id: id });
+        }
+        
+        if (result.deletedCount === 1) {
+            console.log('✅ Reserva deletada via DELETE!');
+            res.json({ success: true, message: 'Reserva deletada!', deletedCount: 1 });
+        } else {
+            res.status(404).json({ success: false, message: 'Reserva não encontrada' });
+        }
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ ESQUECI MINHA SENHA ============
 app.post('/api/forgot-password', async (req, res) => {
     try {
@@ -516,25 +606,5 @@ async function createAdminIfNeeded() {
     await ensureConnection();
     await createAdminIfNeeded();
 })();
-
-// Rota para deletar reserva
-app.post('/api/delete-booking', async (req, res) => {
-    try {
-        await ensureConnection();
-        const { date, time, userId } = req.body;
-        
-        const result = await Booking.deleteOne({ date, time, userId });
-        
-        console.log(`🗑️ Reserva deletada: ${date} ${time} - ${userId}`);
-        res.json({ 
-            success: true, 
-            message: 'Reserva deletada com sucesso!',
-            deletedCount: result.deletedCount 
-        });
-    } catch (error) {
-        console.error('Erro ao deletar:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
 
 module.exports = app;
