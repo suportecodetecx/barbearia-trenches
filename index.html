@@ -876,59 +876,103 @@
         }
         
         async function loadGlobalSettings() {
-            try {
-                const response = await fetch('/api/settings');
-                if (response.ok) {
-                    const settings = await response.json();
-                    if (settings.services && settings.services.length > 0) {
-                        const container = document.getElementById('dynamicPrices');
-                        if (container) {
-                            container.innerHTML = settings.services.map(sv => {
-                                const durMin = sv.duration || 45;
-                                let durText = '';
-                                if (durMin < 60) durText = '(' + durMin + ' min)';
-                                else {
-                                    const h = Math.floor(durMin / 60);
-                                    const m = durMin % 60;
-                                    durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
-                                }
-                                return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
-                            }).join('');
+    try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+            const settings = await response.json();
+            if (settings.services && settings.services.length > 0) {
+                const container = document.getElementById('dynamicPrices');
+                if (container) {
+                    container.innerHTML = settings.services.map(sv => {
+                        const durMin = sv.duration || 45;
+                        let durText = '';
+                        if (durMin < 60) durText = '(' + durMin + ' min)';
+                        else {
+                            const h = Math.floor(durMin / 60);
+                            const m = durMin % 60;
+                            durText = '(' + h + 'h' + (m > 0 ? ' ' + m + 'min' : '') + ')';
                         }
-                    }
-                    if (settings.hours) {
-                        const hm = { mon: 'hourMonDisplay', tue: 'hourTueDisplay', wed: 'hourWedDisplay', thu: 'hourThuDisplay', fri: 'hourFriDisplay', sat: 'hourSatDisplay' };
-                        for (const [k, v] of Object.entries(hm)) {
-                            const el = document.getElementById(v);
-                            if (el && settings.hours[k]) {
-                                const val = settings.hours[k];
-                                el.textContent = val.replace(':00', 'h').replace(' - ', 'h - ');
-                            }
-                        }
-                    }
-                    if (settings.phone) {
-                        const cp = document.getElementById('contactPhone');
-                        if (cp) {
-                            cp.textContent = settings.phone;
-                            cp.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
-                        }
-                        const wf = document.querySelector('.whatsapp-float');
-                        if (wf) wf.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
-                    }
-                    if (settings.instagram) {
-                        const ih = document.getElementById('instagramHandle');
-                        if (ih) ih.textContent = settings.instagram;
-                    }
-                    if (settings.address) {
-                        const ca = document.getElementById('contactAddress');
-                        if (ca) ca.innerHTML = '<strong>Endereço</strong><br>' + settings.address.replace(/\n/g, '<br>');
+                        return '<div class="price-item"><div><span class="price-name">' + escapeHtml(sv.name) + '</span><span class="price-duration">' + durText + '</span></div><span class="price-value">R$' + sv.price + '</span></div>';
+                    }).join('');
+                }
+            }
+            if (settings.hours) {
+                const hm = { mon: 'hourMonDisplay', tue: 'hourTueDisplay', wed: 'hourWedDisplay', thu: 'hourThuDisplay', fri: 'hourFriDisplay', sat: 'hourSatDisplay' };
+                for (const [k, v] of Object.entries(hm)) {
+                    const el = document.getElementById(v);
+                    if (el && settings.hours[k]) {
+                        let val = settings.hours[k];
+                        // FUNÇÃO PARA CONVERTER QUALQUER FORMATO PARA "9h - 19h" ou "9h30 - 18h30"
+                        val = converterParaFormatoHorario(val);
+                        el.textContent = val;
+                        console.log(`🕐 ${k} -> ${val}`);
                     }
                 }
-            } catch (error) {
-                console.error('Erro ao carregar configurações globais:', error);
-                loadLocalSettings();
+            }
+            if (settings.phone) {
+                const cp = document.getElementById('contactPhone');
+                if (cp) {
+                    cp.textContent = settings.phone;
+                    cp.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
+                }
+                const wf = document.querySelector('.whatsapp-float');
+                if (wf) wf.href = 'https://wa.me/55' + settings.phone.replace(/\D/g, '');
+            }
+            if (settings.instagram) {
+                const ih = document.getElementById('instagramHandle');
+                if (ih) ih.textContent = settings.instagram;
+            }
+            if (settings.address) {
+                const ca = document.getElementById('contactAddress');
+                if (ca) ca.innerHTML = '<strong>Endereço</strong><br>' + settings.address.replace(/\n/g, '<br>');
             }
         }
+    } catch (error) {
+        console.error('Erro ao carregar configurações globais:', error);
+        loadLocalSettings();
+    }
+}
+
+// FUNÇÃO PARA CONVERTER QUALQUER FORMATO DE HORÁRIO PARA "9h - 19h" ou "9h30 - 18h30"
+function converterParaFormatoHorario(horarioStr) {
+    if (!horarioStr || horarioStr === 'FECHADO') return horarioStr;
+    
+    // Extrair todos os números da string
+    const numeros = horarioStr.match(/\d+/g);
+    if (!numeros || numeros.length < 2) return horarioStr;
+    
+    // Processar hora de início
+    let inicioHora = parseInt(numeros[0]);
+    let inicioMinuto = numeros[1] && numeros[1].length === 2 && parseInt(numeros[1]) < 60 ? parseInt(numeros[1]) : 0;
+    
+    // Se o segundo número for maior que 59, provavelmente é a hora final
+    let fimHora, fimMinuto;
+    if (numeros[1] >= 60 || numeros[1] > 59) {
+        fimHora = parseInt(numeros[1]);
+        fimMinuto = numeros[2] && numeros[2].length === 2 ? parseInt(numeros[2]) : 0;
+        inicioMinuto = 0;
+    } else {
+        fimHora = parseInt(numeros[2] || numeros[1]);
+        fimMinuto = numeros[3] ? parseInt(numeros[3]) : (numeros[2] && numeros[2].length === 2 && parseInt(numeros[2]) < 60 ? parseInt(numeros[2]) : 0);
+    }
+    
+    // Se a hora final tiver 4 dígitos (ex: 1900), ajustar
+    if (fimHora > 99) {
+        fimHora = Math.floor(fimHora / 100);
+        fimMinuto = fimHora % 100;
+    }
+    
+    // Formatar
+    let inicioStr = inicioHora.toString();
+    if (inicioMinuto > 0) inicioStr += 'h' + inicioMinuto.toString().padStart(2, '0');
+    else inicioStr += 'h';
+    
+    let fimStr = fimHora.toString();
+    if (fimMinuto > 0) fimStr += 'h' + fimMinuto.toString().padStart(2, '0');
+    else fimStr += 'h';
+    
+    return `${inicioStr} - ${fimStr}`;
+}
         
         function loadLocalSettings() {
             const s = localStorage.getItem('adminSettings');

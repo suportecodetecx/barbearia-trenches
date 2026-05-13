@@ -39,23 +39,35 @@ function formatDateDisplay(date) {
     return `${dias[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-// Converter hora string para numero (ex: "09:00 - 20:00" -> { start: 9, end: 20 })
+// Converter hora string para numero (ex: "09:00 - 20:00" ou "09h - 20h" ou "09hh - 19:00" -> { start: 9, end: 19 })
 function parseHourRange(hourStr) {
     if (!hourStr || hourStr === 'FECHADO') return null;
     
-    const match = hourStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    // Tentar formato padrão com ":" (09:00 - 20:00)
+    let match = hourStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    
     if (match) {
         let startHour = parseInt(match[1]);
         const startMinute = parseInt(match[2]);
         let endHour = parseInt(match[3]);
         const endMinute = parseInt(match[4]);
         
-        // Converter minutos para decimal
         const start = startHour + (startMinute / 60);
         const end = endHour + (endMinute / 60);
         
         return { start, end };
     }
+    
+    // Se não achou, extrair todos os números da string (funciona para "09h - 19h", "09hh - 19:00", etc)
+    const numeros = hourStr.match(/\d+/g);
+    if (numeros && numeros.length >= 2) {
+        let startHour = parseInt(numeros[0]);
+        let endHour = parseInt(numeros[1]);
+        console.log('🕐 Formato detectado:', startHour + 'h - ' + endHour + 'h');
+        return { start: startHour, end: endHour };
+    }
+    
+    console.warn('⚠️ Formato de horário não reconhecido:', hourStr);
     return null;
 }
 
@@ -260,7 +272,7 @@ function getAvailableTimes(date, bookings) {
         };
     });
     
-    // Converter horário de fechamento para minutos (18:30 = 1110 minutos)
+    // Converter horário de fechamento para minutos
     const expedienteEndMinutos = Math.floor(horario.end) * 60 + (horario.end % 1) * 60;
     // Converter horário de abertura para minutos
     const expedienteStartMinutos = Math.floor(horario.start) * 60 + (horario.start % 1) * 60;
