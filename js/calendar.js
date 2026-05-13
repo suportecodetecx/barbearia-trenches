@@ -464,11 +464,11 @@ async function confirmBooking() {
     }
 }
 
-// Mostrar minhas reservas
+// Mostrar minhas reservas com MODAL BONITO
 async function showMyBookings() {
     const userJson = localStorage.getItem('currentUser');
     if (!userJson) {
-        alert('Faca login para ver sua agenda');
+        alert('Faça login para ver sua agenda');
         document.getElementById('authModal').style.display = 'block';
         return;
     }
@@ -489,20 +489,66 @@ async function showMyBookings() {
         return a.time.localeCompare(b.time);
     });
     
-    if (myBookings.length === 0) {
-        alert('Voce nao tem agendamentos futuros');
+    const container = document.getElementById('agendaList');
+    if (!container) {
+        console.error('Elemento agendaList nao encontrado! Verifique se o modal existe no HTML');
+        // Fallback para alert caso o modal nao exista
+        if (myBookings.length === 0) {
+            alert('Voce nao tem agendamentos futuros');
+        } else {
+            let message = 'MINHA AGENDA\n\n';
+            myBookings.forEach((booking, index) => {
+                const partes = booking.date.split('-');
+                const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+                message += `${index + 1}. ${dataFormatada} as ${booking.time}\n`;
+                message += `   Servico: ${booking.service}\n\n`;
+            });
+            message += 'Para cancelar, entre em contato com a barbearia.';
+            alert(message);
+        }
         return;
     }
     
-    let message = 'MINHA AGENDA\n\n';
-    myBookings.forEach((booking, index) => {
-        const partes = booking.date.split('-');
-        const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-        message += `${index + 1}. ${dataFormatada} as ${booking.time}\n`;
-        message += `   Servico: ${booking.service}\n\n`;
-    });
-    message += 'Para cancelar, entre em contato com a barbearia.';
-    alert(message);
+    if (myBookings.length === 0) {
+        container.innerHTML = `
+            <div class="agenda-empty">
+                <i class="fas fa-calendar-times"></i>
+                <p>Você ainda não tem agendamentos</p>
+                <small>Clique em "Reservas" para agendar um horário</small>
+            </div>
+        `;
+    } else {
+        container.innerHTML = myBookings.map(booking => {
+            const partes = booking.date.split('-');
+            const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            return `
+                <div class="agenda-item">
+                    <div class="agenda-date">
+                        <i class="fas fa-calendar-day"></i> ${dataFormatada}
+                    </div>
+                    <div class="agenda-time">
+                        <i class="fas fa-clock"></i> ${booking.time}
+                    </div>
+                    <div class="agenda-service">
+                        <i class="fas fa-cut"></i> Serviço: ${booking.service}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML += `
+            <div class="agenda-cancel">
+                <i class="fas fa-phone-alt"></i> Para cancelar, entre em contato com a barbearia
+            </div>
+        `;
+    }
+    
+    const agendaModal = document.getElementById('agendaModal');
+    if (agendaModal) {
+        agendaModal.style.display = 'flex';
+    } else {
+        console.error('Modal agendaModal nao encontrado!');
+    }
 }
 
 function prevMonth() {
