@@ -18,6 +18,15 @@ const HORARIO_FUNCIONAMENTO = {
     6: { start: 9, end: 18.5 }    // Sabado - 09h as 18:30
 };
 
+// Tempo de limpeza entre agendamentos (minutos)
+const TEMPO_LIMPEZA = 5;
+
+// Cache para servicos (vem do MongoDB)
+let servicosCache = [];
+
+// Cache para duracoes (construido a partir dos servicos)
+let serviceDurations = {};
+
 function formatDateStr(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -25,6 +34,77 @@ function formatDateStr(date) {
 function formatDateDisplay(date) {
     const dias = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'];
     return `${dias[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+// Carregar servicos do backend (MongoDB)
+async function loadServices() {
+    try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+            const settings = await response.json();
+            if (settings.services && settings.services.length > 0) {
+                servicosCache = settings.services;
+                // Construir objeto de duracoes
+                serviceDurations = {};
+                servicosCache.forEach(s => {
+                    serviceDurations[s.name] = s.duration || 45;
+                });
+                // Atualizar o select de servicos
+                updateServiceSelect();
+                console.log('✅ Servicos carregados do MongoDB:', servicosCache.map(s => `${s.name}(${s.duration}min)`));
+                return servicosCache;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar servicos:', error);
+    }
+    
+    // Fallback caso nao consiga carregar
+    servicosCache = [
+        { name: 'Cabelo', price: 40, duration: 45, id: 'cabelo' },
+        { name: 'Barba', price: 40, duration: 30, id: 'barba' },
+        { name: 'Cabelo e Barba', price: 80, duration: 75, id: 'combo' },
+        { name: 'Pacote Trenches', price: 125, duration: 90, id: 'pacote' }
+    ];
+    serviceDurations = {
+        "Cabelo": 45,
+        "Barba": 30,
+        "Cabelo e Barba": 75,
+        "Pacote Trenches": 90
+    };
+    updateServiceSelect();
+    return servicosCache;
+}
+
+// Atualizar o select de servicos no modal
+function updateServiceSelect() {
+    const serviceSelect = document.getElementById('bookingService');
+    if (!serviceSelect) return;
+    
+    const currentValue = serviceSelect.value;
+    serviceSelect.innerHTML = servicosCache.map(s => 
+        `<option value="${s.name}" data-duration="${s.duration}">${s.name} - R$${s.price}</option>`
+    ).join('');
+    
+    if (currentValue && servicosCache.some(s => s.name === currentValue)) {
+        serviceSelect.value = currentValue;
+    }
+}
+
+// Obter duracao de um servico pelo nome
+function getServiceDuration(serviceName) {
+    if (serviceDurations[serviceName]) {
+        return serviceDurations[serviceName];
+    }
+    // Se nao encontrou, busca no cache
+    const service = servicosCache.find(s => s.name === serviceName);
+    return service ? service.duration : 45;
+}
+
+// Obter duracao do servico selecionado
+function getSelectedServiceDuration() {
+    const serviceName = getSelectedService();
+    return getServiceDuration(serviceName);
 }
 
 // Carregar datas bloqueadas do adminSettings
@@ -52,21 +132,24 @@ function isDateBlocked(date) {
 function isDateAvailable(date) {
     const dayOfWeek = date.getDay();
     
-    // Verificar dias fechados (Domingo e Segunda)
     if (DIAS_FECHADOS.includes(dayOfWeek)) return false;
     
-    // Verificar se a data ja passou
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) return false;
     
-    // Verificar se esta bloqueada (feriados)
     if (isDateBlocked(date)) return false;
     
     return true;
 }
 
-// Gerar horarios disponiveis - CORRIGIDO
+// Obter servico selecionado
+function getSelectedService() {
+    const serviceSelect = document.getElementById('bookingService');
+    return serviceSelect ? serviceSelect.value : 'Cabelo';
+}
+
+// Gerar horarios disponiveis - DINAMICO
 function getAvailableTimes(date, bookings) {
     const dayOfWeek = date.getDay();
     const horario = HORARIO_FUNCIONAMENTO[dayOfWeek];
@@ -79,53 +162,57 @@ function getAvailableTimes(date, bookings) {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
+    const duracaoServico = getSelectedServiceDuration();
+    
     const bookingsToday = bookings.filter(b => b.date === dateStr);
-    const horariosReservados = bookingsToday.map(b => b.time);
     
-    // Margem de segurança para evitar agendamentos em cima da hora (30 minutos)
-    const MINUTOS_ANTECEDENCIA = 30;
+    // Converter reservas existentes para minutos (usando duracoes dinamicas)
+    const reservasEmMinutos = bookingsToday.map(booking => {
+        const [hour, minute] = booking.time.split(':').map(Number);
+        const duracao = getServiceDuration(booking.service);
+        return {
+            start: hour * 60 + minute,
+            end: (hour * 60 + minute) + duracao
+        };
+    });
     
+    // Gerar horarios a cada 5 minutos
     for (let hour = horario.start; hour < horario.end; hour++) {
-        // Horário cheio (09:00, 10:00, etc)
-        const timeFull = `${String(hour).padStart(2, '0')}:00`;
-        let isPast = false;
-        if (isToday) {
-            // Verificar se o horário já passou (considerando 30 min de antecedência)
-            if (hour < currentHour) {
-                isPast = true;
-            } else if (hour === currentHour) {
-                // Se for o mesmo horário, verificar se já passou dos 30 min de antecedência
-                if (currentMinute + MINUTOS_ANTECEDENCIA >= 60) {
-                    // Se ultrapassar a hora, considerar como horário seguinte
-                    isPast = true;
-                } else if (currentMinute + MINUTOS_ANTECEDENCIA >= 0) {
-                    isPast = true;
-                }
-            }
-        }
-        if (!isPast && !horariosReservados.includes(timeFull)) {
-            times.push(timeFull);
-        }
-        
-        // Meia hora (09:30, 10:30, etc)
-        if (hour + 0.5 < horario.end) {
-            const timeHalf = `${String(hour).padStart(2, '0')}:30`;
-            let isPastHalf = false;
+        for (let minute = 0; minute < 60; minute += 5) {
+            const timeMinutes = hour * 60 + minute;
+            const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            
+            // Verificar se horario ja passou (hoje)
             if (isToday) {
-                if (hour < currentHour) {
-                    isPastHalf = true;
-                } else if (hour === currentHour) {
-                    // Verifica se já passou dos 30 min de antecedência para meia hora
-                    if (30 + MINUTOS_ANTECEDENCIA <= currentMinute) {
-                        isPastHalf = true;
-                    }
+                const currentTimeMinutes = currentHour * 60 + currentMinute;
+                if (timeMinutes < currentTimeMinutes + 10) {
+                    continue;
                 }
             }
-            if (!isPastHalf && !horariosReservados.includes(timeHalf)) {
-                times.push(timeHalf);
+            
+            // Verificar se o servico cabe no expediente
+            const endTimeMinutes = timeMinutes + duracaoServico;
+            const expedienteEnd = horario.end * 60;
+            if (endTimeMinutes > expedienteEnd) {
+                continue;
+            }
+            
+            // Verificar conflito com reservas existentes
+            let hasConflict = false;
+            for (const reserva of reservasEmMinutos) {
+                if ((timeMinutes < reserva.end + TEMPO_LIMPEZA) && 
+                    (endTimeMinutes > reserva.start - TEMPO_LIMPEZA)) {
+                    hasConflict = true;
+                    break;
+                }
+            }
+            
+            if (!hasConflict) {
+                times.push(timeStr);
             }
         }
     }
+    
     return times;
 }
 
@@ -209,6 +296,38 @@ function renderCalendar() {
     }
 }
 
+// Atualizar horarios quando o servico mudar
+function setupServiceChangeListener() {
+    const serviceSelect = document.getElementById('bookingService');
+    if (serviceSelect) {
+        serviceSelect.addEventListener('change', async () => {
+            if (selectedDate) {
+                await loadAllBookings();
+                const times = getAvailableTimes(selectedDate, allBookings);
+                const timeSlotsContainer = document.getElementById('timeSlots');
+                
+                if (timeSlotsContainer) {
+                    if (times.length === 0) {
+                        timeSlotsContainer.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--silver-soft);">Nenhum horario disponivel para este servico</div>';
+                    } else {
+                        timeSlotsContainer.innerHTML = times.map(t => `<button class="time-slot" data-time="${t}">${t}</button>`).join('');
+                        document.querySelectorAll('.time-slot').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                selectTime(btn.dataset.time);
+                            });
+                        });
+                    }
+                }
+                
+                const confirmBtn = document.getElementById('confirmBookingBtn');
+                if (confirmBtn) confirmBtn.disabled = true;
+                selectedTime = null;
+            }
+        });
+    }
+}
+
 // Selecionar data
 async function selectDate(date) {
     console.log('Data selecionada:', formatDateDisplay(date));
@@ -274,7 +393,7 @@ async function confirmBooking() {
     
     const userJson = localStorage.getItem('currentUser');
     if (!userJson) {
-        alert('Faça login para agendar');
+        alert('Faca login para agendar');
         document.getElementById('bookingModal').style.display = 'none';
         document.getElementById('authModal').style.display = 'block';
         return;
@@ -349,7 +468,7 @@ async function confirmBooking() {
 async function showMyBookings() {
     const userJson = localStorage.getItem('currentUser');
     if (!userJson) {
-        alert('Faça login para ver sua agenda');
+        alert('Faca login para ver sua agenda');
         document.getElementById('authModal').style.display = 'block';
         return;
     }
@@ -422,8 +541,11 @@ async function initCalendar() {
     selectedDate = null;
     selectedTime = null;
     
+    // Carregar servicos do MongoDB primeiro
+    await loadServices();
     await loadAllBookings();
     renderCalendar();
+    setupServiceChangeListener();
     
     const prevBtn = document.getElementById('prevMonth');
     const nextBtn = document.getElementById('nextMonth');
@@ -455,7 +577,7 @@ async function initCalendar() {
         newConfirmBtn.disabled = true;
     }
     
-    console.log('Calendario inicializado - Dias fechados: Domingo, Segunda e datas bloqueadas');
+    console.log('Calendario inicializado com servicos:', servicosCache.map(s => s.name).join(', '));
 }
 
 window.initCalendar = initCalendar;
@@ -463,4 +585,4 @@ window.confirmBooking = confirmBooking;
 window.showMyBookings = showMyBookings;
 window.renderCalendar = renderCalendar;
 
-console.log('Calendar.js carregado - Dias fechados: Domingo, Segunda e datas bloqueadas');
+console.log('Calendar.js carregado - Busca servicos do MongoDB automaticamente');
