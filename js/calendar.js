@@ -4,19 +4,19 @@ let selectedDate = null;
 let selectedTime = null;
 let allBookings = [];
 
-// DIAS FECHADOS (0 = Domingo, 1 = Segunda)
-const DIAS_FECHADOS = [0, 1];
-
-// Horario de funcionamento
-const HORARIO_FUNCIONAMENTO = {
+// Horario de funcionamento (sera carregado do MongoDB)
+let HORARIO_FUNCIONAMENTO = {
     0: null,     // Domingo - Fechado
     1: null,     // Segunda - Fechado
-    2: { start: 9, end: 18.5 },   // Terca - 09h as 18:30
+    2: { start: 9, end: 18.5 },   // Terca - 09h as 18:30 (padrao)
     3: { start: 9, end: 18.5 },   // Quarta - 09h as 18:30
     4: { start: 9, end: 18.5 },   // Quinta - 09h as 18:30
     5: { start: 9, end: 18.5 },   // Sexta - 09h as 18:30
     6: { start: 9, end: 18.5 }    // Sabado - 09h as 18:30
 };
+
+// DIAS FECHADOS (0 = Domingo, 1 = Segunda)
+const DIAS_FECHADOS = [0, 1];
 
 // Tempo de limpeza entre agendamentos (minutos)
 const TEMPO_LIMPEZA = 5;
@@ -37,6 +37,58 @@ function formatDateStr(date) {
 function formatDateDisplay(date) {
     const dias = ['Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'];
     return `${dias[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+// Converter hora string para numero (ex: "09:00 - 20:00" -> { start: 9, end: 20 })
+function parseHourRange(hourStr) {
+    if (!hourStr || hourStr === 'FECHADO') return null;
+    
+    const match = hourStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (match) {
+        let startHour = parseInt(match[1]);
+        const startMinute = parseInt(match[2]);
+        let endHour = parseInt(match[3]);
+        const endMinute = parseInt(match[4]);
+        
+        // Converter minutos para decimal
+        const start = startHour + (startMinute / 60);
+        const end = endHour + (endMinute / 60);
+        
+        return { start, end };
+    }
+    return null;
+}
+
+// Carregar horarios de funcionamento do backend
+async function loadHorariosFuncionamento() {
+    try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+            const settings = await response.json();
+            if (settings.hours) {
+                const diasMap = {
+                    mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6
+                };
+                
+                for (const [dia, valor] of Object.entries(settings.hours)) {
+                    const diaNum = diasMap[dia];
+                    if (diaNum && valor && valor !== 'FECHADO') {
+                        const range = parseHourRange(valor);
+                        if (range) {
+                            HORARIO_FUNCIONAMENTO[diaNum] = range;
+                        } else {
+                            HORARIO_FUNCIONAMENTO[diaNum] = null;
+                        }
+                    } else {
+                        HORARIO_FUNCIONAMENTO[diaNum] = null;
+                    }
+                }
+                console.log('🕐 Horários de funcionamento carregados:', HORARIO_FUNCIONAMENTO);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar horários:', error);
+    }
 }
 
 // Carregar horario de almoco do backend
@@ -72,8 +124,8 @@ function isAlmocoTime(dayOfWeek, hour, minute) {
     const inicioMinutes = inicioHour * 60 + inicioMinute;
     const fimMinutes = fimHour * 60 + fimMinute;
     
-    // Verificar se esta dentro do intervalo de almoco (incluindo tempo de limpeza)
-    return timeMinutes >= inicioMinutes - 5 && timeMinutes <= fimMinutes - 5;
+    // Verificar se esta dentro do intervalo de almoco
+    return timeMinutes >= inicioMinutes && timeMinutes < fimMinutes;
 }
 
 // Carregar servicos do backend (MongoDB)
@@ -189,7 +241,7 @@ function getSelectedService() {
     return serviceSelect ? serviceSelect.value : 'Cabelo';
 }
 
-// Gerar horarios disponiveis - DINAMICO (incluindo bloqueio de almoco)
+// Gerar horarios disponiveis - DINAMICO (incluindo bloqueio de almoco e horarios dinamicos)
 function getAvailableTimes(date, bookings) {
     const dayOfWeek = date.getDay();
     const horario = HORARIO_FUNCIONAMENTO[dayOfWeek];
@@ -217,7 +269,7 @@ function getAvailableTimes(date, bookings) {
     });
     
     // Gerar horarios a cada 5 minutos
-    for (let hour = horario.start; hour < horario.end; hour++) {
+    for (let hour = Math.floor(horario.start); hour < horario.end; hour++) {
         for (let minute = 0; minute < 60; minute += 5) {
             const timeMinutes = hour * 60 + minute;
             const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
@@ -232,12 +284,14 @@ function getAvailableTimes(date, bookings) {
             
             // VERIFICAR HORÁRIO DE ALMOÇO
             if (isAlmocoTime(dayOfWeek, hour, minute)) {
-                continue; // Bloquear horario de almoco
+                continue;
             }
             
             // Verificar se o servico cabe no expediente
             const endTimeMinutes = timeMinutes + duracaoServico;
             const expedienteEnd = horario.end * 60;
+            
+            // O serviço deve terminar EXATAMENTE no horário de fechamento ou antes
             if (endTimeMinutes > expedienteEnd) {
                 continue;
             }
@@ -246,7 +300,7 @@ function getAvailableTimes(date, bookings) {
             const endHour = Math.floor(endTimeMinutes / 60);
             const endMinute = endTimeMinutes % 60;
             if (isAlmocoTime(dayOfWeek, endHour, endMinute)) {
-                continue; // Servico terminaria durante o almoco
+                continue;
             }
             
             // Verificar conflito com reservas existentes
@@ -544,7 +598,6 @@ async function showMyBookings() {
     const container = document.getElementById('agendaList');
     if (!container) {
         console.error('Elemento agendaList nao encontrado! Verifique se o modal existe no HTML');
-        // Fallback para alert caso o modal nao exista
         if (myBookings.length === 0) {
             alert('Voce nao tem agendamentos futuros');
         } else {
@@ -639,12 +692,12 @@ async function initCalendar() {
     selectedDate = null;
     selectedTime = null;
     
-    // Carregar configuracao do almoco
+    // Carregar TODAS as configurações do MongoDB
+    await loadHorariosFuncionamento();
     await loadAlmocoConfig();
-    
-    // Carregar servicos do MongoDB primeiro
     await loadServices();
     await loadAllBookings();
+    
     renderCalendar();
     setupServiceChangeListener();
     
@@ -678,8 +731,9 @@ async function initCalendar() {
         newConfirmBtn.disabled = true;
     }
     
-    console.log('Calendario inicializado com servicos:', servicosCache.map(s => s.name).join(', '));
+    console.log('🕐 Horários de funcionamento:', HORARIO_FUNCIONAMENTO);
     console.log('🍽️ Horário de almoço:', almocoConfig);
+    console.log('✅ Calendario inicializado com servicos:', servicosCache.map(s => s.name).join(', '));
 }
 
 window.initCalendar = initCalendar;
@@ -687,4 +741,4 @@ window.confirmBooking = confirmBooking;
 window.showMyBookings = showMyBookings;
 window.renderCalendar = renderCalendar;
 
-console.log('Calendar.js carregado - Busca servicos do MongoDB automaticamente');
+console.log('Calendar.js carregado - Busca horários e serviços do MongoDB automaticamente');

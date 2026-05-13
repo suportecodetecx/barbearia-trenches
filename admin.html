@@ -364,7 +364,7 @@
                 <button class="btn-save" onclick="saveHours()">SALVAR HORÁRIOS</button>
             </div>
 
-            <!-- NOVO CARD: HORÁRIO DE ALMOÇO -->
+            <!-- CARD: HORÁRIO DE ALMOÇO - DINÂMICO -->
             <div class="admin-card">
                 <h2><i class="fas fa-utensils"></i> HORÁRIO DE ALMOÇO</h2>
                 <div class="row-2">
@@ -381,11 +381,11 @@
                     <label>Dias que tem horário de almoço</label>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
                         <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoSeg" value="1"> Segunda</label>
-                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoTer" value="2" checked> Terça</label>
-                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoQua" value="3" checked> Quarta</label>
-                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoQui" value="4" checked> Quinta</label>
-                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoSex" value="5" checked> Sexta</label>
-                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoSab" value="6" checked> Sábado</label>
+                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoTer" value="2"> Terça</label>
+                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoQua" value="3"> Quarta</label>
+                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoQui" value="4"> Quinta</label>
+                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoSex" value="5"> Sexta</label>
+                        <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="almocoSab" value="6"> Sábado</label>
                     </div>
                 </div>
                 <button class="btn-save" onclick="saveAlmoco()">SALVAR HORÁRIO DE ALMOÇO</button>
@@ -433,34 +433,77 @@ Mogi das Cruzes - SP</textarea></div>
         function closeToast(){document.getElementById('toastOverlay').classList.remove('show');}
         document.addEventListener('DOMContentLoaded',function(){document.getElementById('toastOverlay').addEventListener('click',function(e){if(e.target===this)closeToast();});});
 
-        // ========== HORÁRIO DE ALMOÇO ==========
-        let almocoConfig = { inicio: '12:00', fim: '13:00', dias: [2,3,4,5,6] };
-
-        async function saveAlmoco() {
-            const inicio = document.getElementById('almocoInicio').value;
-            const fim = document.getElementById('almocoFim').value;
-            const dias = [];
-            if (document.getElementById('almocoSeg').checked) dias.push(1);
-            if (document.getElementById('almocoTer').checked) dias.push(2);
-            if (document.getElementById('almocoQua').checked) dias.push(3);
-            if (document.getElementById('almocoQui').checked) dias.push(4);
-            if (document.getElementById('almocoSex').checked) dias.push(5);
-            if (document.getElementById('almocoSab').checked) dias.push(6);
+       async function saveAlmoco() {
+    const inicio = document.getElementById('almocoInicio').value;
+    const fim = document.getElementById('almocoFim').value;
+    
+    if (!inicio || !fim) {
+        showToast('Atenção', 'Defina o horário de início e fim do almoço');
+        return;
+    }
+    
+    const dias = [];
+    if (document.getElementById('almocoSeg').checked) dias.push(1);
+    if (document.getElementById('almocoTer').checked) dias.push(2);
+    if (document.getElementById('almocoQua').checked) dias.push(3);
+    if (document.getElementById('almocoQui').checked) dias.push(4);
+    if (document.getElementById('almocoSex').checked) dias.push(5);
+    if (document.getElementById('almocoSab').checked) dias.push(6);
+    
+    if (dias.length === 0) {
+        showToast('Atenção', 'Selecione pelo menos um dia para o horário de almoço');
+        return;
+    }
+    
+    const almoco = { inicio, fim, dias };
+    
+    try {
+        // SALVAR APENAS O ALMOÇO (mais simples)
+        const response = await fetch(API_URL + '/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ almoco: almoco })
+        });
+        
+        if (response.ok) {
+            console.log('✅ Horário de almoço salvo:', almoco);
             
-            const almoco = { inicio, fim, dias };
-            const success = await saveSettings({ almoco: almoco });
-            if (success) {
-                showToast('Sucesso', 'Horário de almoço salvo! Os horários serão bloqueados na agenda.');
-                almocoConfig = almoco;
-            }
+            // ATUALIZAR A INTERFACE IMEDIATAMENTE
+            document.getElementById('almocoInicio').value = almoco.inicio;
+            document.getElementById('almocoFim').value = almoco.fim;
+            document.getElementById('almocoSeg').checked = almoco.dias.includes(1);
+            document.getElementById('almocoTer').checked = almoco.dias.includes(2);
+            document.getElementById('almocoQua').checked = almoco.dias.includes(3);
+            document.getElementById('almocoQui').checked = almoco.dias.includes(4);
+            document.getElementById('almocoSex').checked = almoco.dias.includes(5);
+            document.getElementById('almocoSab').checked = almoco.dias.includes(6);
+            
+            almocoConfig = almoco;
+            showToast('Sucesso', `Horário de almoço salvo: ${inicio} às ${fim}`);
+            
+            // FORÇAR RECARREGAMENTO dos dados
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            const error = await response.json();
+            console.error('Erro:', error);
+            showToast('Erro', 'Não foi possível salvar o horário de almoço');
         }
-
+    } catch (error) {
+        console.error('Erro:', error);
+        showToast('Erro', 'Erro de conexão ao salvar');
+    }
+}
         async function loadAlmoco() {
             try {
                 const response = await fetch(API_URL + '/api/settings');
                 if (response.ok) {
                     const settings = await response.json();
+                    console.log('📥 Configurações carregadas:', settings);
+                    
                     if (settings.almoco) {
+                        // CARREGAR valores do banco
                         document.getElementById('almocoInicio').value = settings.almoco.inicio || '12:00';
                         document.getElementById('almocoFim').value = settings.almoco.fim || '13:00';
                         const dias = settings.almoco.dias || [2,3,4,5,6];
@@ -471,7 +514,21 @@ Mogi das Cruzes - SP</textarea></div>
                         document.getElementById('almocoSex').checked = dias.includes(5);
                         document.getElementById('almocoSab').checked = dias.includes(6);
                         almocoConfig = settings.almoco;
+                        console.log('🍽️ Horário de almoço carregado:', almocoConfig);
+                    } else {
+                        // Valores padrão se não existir no banco
+                        document.getElementById('almocoInicio').value = '12:00';
+                        document.getElementById('almocoFim').value = '13:00';
+                        document.getElementById('almocoSeg').checked = false;
+                        document.getElementById('almocoTer').checked = true;
+                        document.getElementById('almocoQua').checked = true;
+                        document.getElementById('almocoQui').checked = true;
+                        document.getElementById('almocoSex').checked = true;
+                        document.getElementById('almocoSab').checked = true;
+                        console.log('🍽️ Usando valores padrão para horário de almoço');
                     }
+                } else {
+                    console.error('Erro ao carregar configurações:', response.status);
                 }
             } catch (error) {
                 console.error('Erro ao carregar horário de almoço:', error);
@@ -550,6 +607,7 @@ Mogi das Cruzes - SP</textarea></div>
                 console.error('Erro ao carregar configurações:', error);
                 loadLocalSettings();
             }
+            // Carregar o almoço DEPOIS de carregar as outras configurações
             await loadAlmoco();
         }
 

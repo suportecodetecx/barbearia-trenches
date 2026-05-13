@@ -19,6 +19,11 @@ const SettingSchema = new mongoose.Schema({
     instagram: { type: String, default: '@barbeariatrenches' },
     address: { type: String, default: 'Av. Maj. Melo, 35\nVila Nova Aparecida\nMogi das Cruzes - SP' },
     blockedDates: { type: [String], default: [] },
+    almoco: {
+        inicio: { type: String, default: '11:00' },
+        fim: { type: String, default: '12:00' },
+        dias: { type: [Number], default: [2, 3, 4, 5, 6] }
+    },
     updatedAt: { type: Date, default: Date.now }
 });
 

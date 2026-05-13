@@ -59,7 +59,12 @@ app.get('/api/settings', async (req, res) => {
                 phone: '(11) 94848-4457',
                 instagram: '@barbeariatrenches',
                 address: 'Av. Maj. Melo, 35\nVila Nova Aparecida\nMogi das Cruzes - SP',
-                blockedDates: []
+                blockedDates: [],
+                almoco: {
+                    inicio: '12:00',
+                    fim: '13:00',
+                    dias: [2, 3, 4, 5, 6]
+                }
             });
             await settings.save();
             console.log('📋 Configurações padrão criadas');
@@ -89,12 +94,21 @@ app.post('/api/settings', async (req, res) => {
         if (updates.instagram) settings.instagram = updates.instagram;
         if (updates.address) settings.address = updates.address;
         if (updates.blockedDates) settings.blockedDates = updates.blockedDates;
+        if (updates.almoco) settings.almoco = updates.almoco;
         
         settings.updatedAt = Date.now();
         await settings.save();
         
         console.log('✅ Configurações salvas globalmente');
-        res.json({ message: 'Configurações salvas com sucesso!', settings });
+        if (updates.almoco) {
+            console.log('🍽️ Horário de almoço salvo:', JSON.stringify(updates.almoco));
+        }
+        
+        // Retornar as configurações atualizadas
+        res.json({ 
+            message: 'Configurações salvas com sucesso!', 
+            settings: settings 
+        });
     } catch (error) {
         console.error('Erro ao salvar configurações:', error);
         res.status(500).json({ error: 'Erro ao salvar configurações' });
@@ -503,7 +517,7 @@ async function createAdminIfNeeded() {
     await createAdminIfNeeded();
 })();
 
-// Rota temporária para deletar reserva
+// Rota para deletar reserva
 app.post('/api/delete-booking', async (req, res) => {
     try {
         await ensureConnection();
