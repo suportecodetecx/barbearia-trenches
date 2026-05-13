@@ -428,7 +428,6 @@ Mogi das Cruzes - SP</textarea></div>
         let allBookings = [], currentPhotoPreview = null;
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
-        let deleteBarbeiroAPI = null;
 
         // ========== FUNÇÕES DE REDIMENSIONAMENTO DE IMAGEM ==========
         async function resizeImage(file, maxWidth = 500, maxHeight = 500, quality = 0.7) {
@@ -578,7 +577,7 @@ Mogi das Cruzes - SP</textarea></div>
                 const result = await response.json();
                 console.log('📥 Resposta do servidor:', result);
                 
-                if (response.ok && result.success) {
+                if (response.ok) {
                     showToast('Reserva Cancelada', 'A reserva foi removida com sucesso!');
                     await loadTodaysBookings();
                     return true;
@@ -720,62 +719,47 @@ Mogi das Cruzes - SP</textarea></div>
         }
 
         // ========== FUNÇÃO CORRIGIDA PARA ATUALIZAR BARBEIRO ==========
-        async function updateBarbeiroAPI(id, name, photo) {
-            try {
-                let photoToSend = photo;
-                
-                if (!photoToSend) {
-                    const response = await fetch(API_URL + '/api/barbers');
-                    if (response.ok) {
-                        const barbeiros = await response.json();
-                        const barbeiroAtual = barbeiros.find(b => b._id === id);
-                        if (barbeiroAtual && barbeiroAtual.photo) {
-                            photoToSend = barbeiroAtual.photo;
-                            console.log('📸 Mantendo foto existente do barbeiro');
-                        } else {
-                            photoToSend = 'images/avatar.png';
-                        }
-                    } else {
-                        photoToSend = 'images/avatar.png';
-                    }
-                }
-                
-                console.log('📤 Atualizando barbeiro:', { id, name, temFoto: !!photoToSend });
-                
-                const response = await fetch(API_URL + '/api/barbers/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name.trim(), photo: photoToSend })
-                });
-                
-                if (response.ok) {
-                    await loadBarbeiros();
-                    showToast('Sucesso', 'Barbeiro atualizado!');
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('Erro ao atualizar:', error);
-                showToast('Erro', 'Não foi possível atualizar barbeiro');
-                return false;
+async function updateBarbeiroAPI(id, name, novaFoto) {
+    try {
+        // Buscar os dados atuais do barbeiro primeiro
+        const getResponse = await fetch(API_URL + '/api/barbers/' + id);
+        let barbeiroAtual = null;
+        let fotoAtual = 'images/avatar.png';
+        
+        if (getResponse.ok) {
+            barbeiroAtual = await getResponse.json();
+            if (barbeiroAtual && barbeiroAtual.photo) {
+                fotoAtual = barbeiroAtual.photo;
             }
         }
-
-        // ========== FUNÇÃO PARA DELETAR BARBEIRO ==========
-        async function deleteBarbeiroAPI(id) {
-            try {
-                const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' });
-                if (response.ok) {
-                    await loadBarbeiros();
-                    showToast('Sucesso', 'Barbeiro removido!');
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('Erro:', error);
-                return false;
-            }
+        
+        // Se o usuário enviou uma nova foto, usar ela. Caso contrário, manter a foto atual
+        const photoToSend = novaFoto || fotoAtual;
+        
+        console.log('📸 Atualizando barbeiro:', { id, name, temFotoNova: !!novaFoto, fotoFinal: photoToSend ? 'ok' : 'vazia' });
+        
+        const response = await fetch(API_URL + '/api/barbers/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name.trim(), photo: photoToSend })
+        });
+        
+        if (response.ok) {
+            await loadBarbeiros();
+            showToast('Sucesso', 'Barbeiro atualizado!');
+            return true;
+        } else {
+            const error = await response.json();
+            console.error('Erro do servidor:', error);
+            showToast('Erro', error.error || 'Não foi possível atualizar');
+            return false;
         }
+    } catch (error) {
+        console.error('Erro ao atualizar:', error);
+        showToast('Erro', 'Erro de conexão ao atualizar barbeiro');
+        return false;
+    }
+}
 
         function renderBarbeiros(barbeiros) {
             const container = document.getElementById('barbeirosList');
@@ -829,13 +813,14 @@ Mogi das Cruzes - SP</textarea></div>
         }
 
         function saveEditBarber() {
-            const newName = document.getElementById('editBarberName').value.trim();
-            if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
-            if (editBarberId) {
-                updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
-            }
-            closeEditModal();
-        }
+    const newName = document.getElementById('editBarberName').value.trim();
+    if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
+    if (editBarberId) {
+        // Passar editPhotoPreview (pode ser null se não trocou a foto)
+        updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
+    }
+    closeEditModal();
+}
 
         function openDeleteModal(id, name) {
             deleteBarberId = id;
