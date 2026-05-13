@@ -503,4 +503,24 @@ async function createAdminIfNeeded() {
     await createAdminIfNeeded();
 })();
 
+// Rota temporária para deletar reserva
+app.post('/api/delete-booking', async (req, res) => {
+    try {
+        await ensureConnection();
+        const { date, time, userId } = req.body;
+        
+        const result = await Booking.deleteOne({ date, time, userId });
+        
+        console.log(`🗑️ Reserva deletada: ${date} ${time} - ${userId}`);
+        res.json({ 
+            success: true, 
+            message: 'Reserva deletada com sucesso!',
+            deletedCount: result.deletedCount 
+        });
+    } catch (error) {
+        console.error('Erro ao deletar:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = app;
