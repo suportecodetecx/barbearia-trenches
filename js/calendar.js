@@ -28,7 +28,7 @@ let servicosCache = [];
 let serviceDurations = {};
 
 // Cache para horario de almoco
-let almocoConfig = { inicio: '12:00', fim: '13:00', dias: [2, 3, 4, 5, 6] };
+let almocoConfig = { inicio: '11:00', fim: '12:00', dias: [2, 3, 4, 5, 6] };
 
 function formatDateStr(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -108,7 +108,7 @@ async function loadAlmocoConfig() {
 }
 
 // Verificar se um horario esta dentro do intervalo de almoco
-function isAlmocoTime(dayOfWeek, hour, minute) {
+function isAlmocoTime(dayOfWeek, hour, minute, duracaoServico = 0) {
     // Verificar se o dia tem almoco
     if (!almocoConfig.dias || !almocoConfig.dias.includes(dayOfWeek)) {
         return false;
@@ -124,7 +124,16 @@ function isAlmocoTime(dayOfWeek, hour, minute) {
     const inicioMinutes = inicioHour * 60 + inicioMinute;
     const fimMinutes = fimHour * 60 + fimMinute;
     
-    // Verificar se esta dentro do intervalo de almoco
+    // Se tem duracao de servico, verificar se o horario de INICIO ou o FIM cai no almoco
+    if (duracaoServico > 0) {
+        const endTimeMinutes = timeMinutes + duracaoServico;
+        if ((timeMinutes >= inicioMinutes && timeMinutes < fimMinutes) ||
+            (endTimeMinutes > inicioMinutes && endTimeMinutes <= fimMinutes)) {
+            return true;
+        }
+        return false;
+    }
+    
     return timeMinutes >= inicioMinutes && timeMinutes < fimMinutes;
 }
 
@@ -136,12 +145,10 @@ async function loadServices() {
             const settings = await response.json();
             if (settings.services && settings.services.length > 0) {
                 servicosCache = settings.services;
-                // Construir objeto de duracoes
                 serviceDurations = {};
                 servicosCache.forEach(s => {
                     serviceDurations[s.name] = s.duration || 45;
                 });
-                // Atualizar o select de servicos
                 updateServiceSelect();
                 console.log('✅ Servicos carregados do MongoDB:', servicosCache.map(s => `${s.name}(${s.duration}min)`));
                 return servicosCache;
@@ -151,7 +158,6 @@ async function loadServices() {
         console.error('Erro ao carregar servicos:', error);
     }
     
-    // Fallback caso nao consiga carregar
     servicosCache = [
         { name: 'Cabelo', price: 40, duration: 45, id: 'cabelo' },
         { name: 'Barba', price: 40, duration: 30, id: 'barba' },
@@ -168,7 +174,6 @@ async function loadServices() {
     return servicosCache;
 }
 
-// Atualizar o select de servicos no modal
 function updateServiceSelect() {
     const serviceSelect = document.getElementById('bookingService');
     if (!serviceSelect) return;
@@ -183,23 +188,19 @@ function updateServiceSelect() {
     }
 }
 
-// Obter duracao de um servico pelo nome
 function getServiceDuration(serviceName) {
     if (serviceDurations[serviceName]) {
         return serviceDurations[serviceName];
     }
-    // Se nao encontrou, busca no cache
     const service = servicosCache.find(s => s.name === serviceName);
     return service ? service.duration : 45;
 }
 
-// Obter duracao do servico selecionado
 function getSelectedServiceDuration() {
     const serviceName = getSelectedService();
     return getServiceDuration(serviceName);
 }
 
-// Carregar datas bloqueadas do adminSettings
 function getBlockedDates() {
     const settings = localStorage.getItem('adminSettings');
     if (settings) {
@@ -213,35 +214,28 @@ function getBlockedDates() {
     return [];
 }
 
-// Verificar se uma data esta bloqueada (feriados)
 function isDateBlocked(date) {
     const blockedDates = getBlockedDates();
     const dateStr = formatDateStr(date);
     return blockedDates.includes(dateStr);
 }
 
-// Verificar se data esta disponivel
 function isDateAvailable(date) {
     const dayOfWeek = date.getDay();
-    
     if (DIAS_FECHADOS.includes(dayOfWeek)) return false;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) return false;
-    
     if (isDateBlocked(date)) return false;
-    
     return true;
 }
 
-// Obter servico selecionado
 function getSelectedService() {
     const serviceSelect = document.getElementById('bookingService');
     return serviceSelect ? serviceSelect.value : 'Cabelo';
 }
 
-// Gerar horarios disponiveis - DINAMICO (incluindo bloqueio de almoco e horarios dinamicos)
 function getAvailableTimes(date, bookings) {
     const dayOfWeek = date.getDay();
     const horario = HORARIO_FUNCIONAMENTO[dayOfWeek];
@@ -255,10 +249,8 @@ function getAvailableTimes(date, bookings) {
     const currentMinute = now.getMinutes();
     
     const duracaoServico = getSelectedServiceDuration();
-    
     const bookingsToday = bookings.filter(b => b.date === dateStr);
     
-    // Converter reservas existentes para minutos (usando duracoes dinamicas)
     const reservasEmMinutos = bookingsToday.map(booking => {
         const [hour, minute] = booking.time.split(':').map(Number);
         const duracao = getServiceDuration(booking.service);
@@ -268,61 +260,56 @@ function getAvailableTimes(date, bookings) {
         };
     });
     
+    // Converter horário de fechamento para minutos (18:30 = 1110 minutos)
+    const expedienteEndMinutos = Math.floor(horario.end) * 60 + (horario.end % 1) * 60;
+    // Converter horário de abertura para minutos
+    const expedienteStartMinutos = Math.floor(horario.start) * 60 + (horario.start % 1) * 60;
+    
     // Gerar horarios a cada 5 minutos
-    for (let hour = Math.floor(horario.start); hour < horario.end; hour++) {
-        for (let minute = 0; minute < 60; minute += 5) {
-            const timeMinutes = hour * 60 + minute;
-            const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-            
-            // Verificar se horario ja passou (hoje)
-            if (isToday) {
-                const currentTimeMinutes = currentHour * 60 + currentMinute;
-                if (timeMinutes < currentTimeMinutes + 10) {
-                    continue;
-                }
-            }
-            
-            // VERIFICAR HORÁRIO DE ALMOÇO
-            if (isAlmocoTime(dayOfWeek, hour, minute)) {
+    for (let minutes = expedienteStartMinutos; minutes < expedienteEndMinutos; minutes += 5) {
+        const hour = Math.floor(minutes / 60);
+        const minute = minutes % 60;
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        
+        if (isToday) {
+            const currentTimeMinutes = currentHour * 60 + currentMinute;
+            if (minutes < currentTimeMinutes + 10) {
                 continue;
             }
-            
-            // Verificar se o servico cabe no expediente
-            const endTimeMinutes = timeMinutes + duracaoServico;
-            const expedienteEnd = horario.end * 60;
-            
-            // O serviço deve terminar EXATAMENTE no horário de fechamento ou antes
-            if (endTimeMinutes > expedienteEnd) {
-                continue;
+        }
+        
+        if (isAlmocoTime(dayOfWeek, hour, minute, 0)) {
+            continue;
+        }
+        
+        const endTimeMinutes = minutes + duracaoServico;
+        if (endTimeMinutes > expedienteEndMinutos) {
+            continue;
+        }
+        
+        const endHour = Math.floor(endTimeMinutes / 60);
+        const endMinute = endTimeMinutes % 60;
+        if (isAlmocoTime(dayOfWeek, endHour, endMinute, 0)) {
+            continue;
+        }
+        
+        let hasConflict = false;
+        for (const reserva of reservasEmMinutos) {
+            if ((minutes < reserva.end + TEMPO_LIMPEZA) && 
+                (endTimeMinutes > reserva.start - TEMPO_LIMPEZA)) {
+                hasConflict = true;
+                break;
             }
-            
-            // Verificar se o servico termina durante o almoco
-            const endHour = Math.floor(endTimeMinutes / 60);
-            const endMinute = endTimeMinutes % 60;
-            if (isAlmocoTime(dayOfWeek, endHour, endMinute)) {
-                continue;
-            }
-            
-            // Verificar conflito com reservas existentes
-            let hasConflict = false;
-            for (const reserva of reservasEmMinutos) {
-                if ((timeMinutes < reserva.end + TEMPO_LIMPEZA) && 
-                    (endTimeMinutes > reserva.start - TEMPO_LIMPEZA)) {
-                    hasConflict = true;
-                    break;
-                }
-            }
-            
-            if (!hasConflict) {
-                times.push(timeStr);
-            }
+        }
+        
+        if (!hasConflict) {
+            times.push(timeStr);
         }
     }
     
     return times;
 }
 
-// Carregar reservas do backend
 async function loadAllBookings() {
     try {
         const response = await fetch('/api/bookings/all');
@@ -341,7 +328,6 @@ async function loadAllBookings() {
     return allBookings;
 }
 
-// Renderizar calendario
 function renderCalendar() {
     const calendarGrid = document.getElementById('calendarGrid');
     const currentMonthEl = document.getElementById('currentMonth');
@@ -402,7 +388,6 @@ function renderCalendar() {
     }
 }
 
-// Atualizar horarios quando o servico mudar
 function setupServiceChangeListener() {
     const serviceSelect = document.getElementById('bookingService');
     if (serviceSelect) {
@@ -434,7 +419,6 @@ function setupServiceChangeListener() {
     }
 }
 
-// Selecionar data
 async function selectDate(date) {
     console.log('Data selecionada:', formatDateDisplay(date));
     selectedDate = date;
@@ -473,7 +457,6 @@ async function selectDate(date) {
     }
 }
 
-// Selecionar horario
 function selectTime(time) {
     console.log('Horario selecionado:', time);
     selectedTime = time;
@@ -493,7 +476,6 @@ function selectTime(time) {
     }
 }
 
-// CONFIRMAR RESERVA
 async function confirmBooking() {
     console.log('Botao Confirmar clicado');
     
@@ -570,7 +552,6 @@ async function confirmBooking() {
     }
 }
 
-// Mostrar minhas reservas com MODAL BONITO
 async function showMyBookings() {
     const userJson = localStorage.getItem('currentUser');
     if (!userJson) {
@@ -597,7 +578,7 @@ async function showMyBookings() {
     
     const container = document.getElementById('agendaList');
     if (!container) {
-        console.error('Elemento agendaList nao encontrado! Verifique se o modal existe no HTML');
+        console.error('Elemento agendaList nao encontrado!');
         if (myBookings.length === 0) {
             alert('Voce nao tem agendamentos futuros');
         } else {
@@ -692,7 +673,6 @@ async function initCalendar() {
     selectedDate = null;
     selectedTime = null;
     
-    // Carregar TODAS as configurações do MongoDB
     await loadHorariosFuncionamento();
     await loadAlmocoConfig();
     await loadServices();
