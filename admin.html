@@ -48,14 +48,25 @@
         .logout-btn { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .logout-btn:hover { transform: scale(1.02); box-shadow: 0 0 20px #ff5722; }
 
+        /* NOVO CARD DE FATURAMENTO */
+        .revenue-card {
+            background: linear-gradient(135deg, #1a2a3a, #0f172a);
+            border: 2px solid #ffd700;
+            margin-bottom: 20px;
+        }
+        .revenue-card h2 { color: #ffd700 !important; border-bottom-color: #ffd700 !important; }
+        .revenue-value { font-size: 32px; font-weight: 800; color: #ffd700; text-align: center; margin: 15px 0; letter-spacing: 2px; }
+        @media (max-width: 768px) { .revenue-value { font-size: 28px; } }
+
         .filter-bar {
             background: rgba(15, 23, 42, 0.8); border-radius: 20px; padding: 15px; margin-bottom: 20px;
             display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; border: 1px solid rgba(192, 214, 239, 0.2);
         }
-        .filter-bar select, .filter-bar button {
+        .filter-bar select, .filter-bar input, .filter-bar button {
             padding: 10px 15px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(192, 214, 239, 0.2);
             border-radius: 30px; color: var(--silver-main); font-size: 13px; cursor: pointer;
         }
+        .filter-bar input[type="date"] { cursor: pointer; color-scheme: dark; }
         .filter-bar button { background: linear-gradient(135deg, var(--blue-steel), var(--blue-primary)); color: #000; font-weight: bold; }
 
         .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
@@ -243,7 +254,7 @@
         @media (max-width: 768px) {
             body { padding: 10px; }
             .admin-header { flex-direction: column; text-align: center; padding: 12px 15px; }
-            .filter-bar select, .filter-bar button { padding: 8px 12px; font-size: 12px; }
+            .filter-bar select, .filter-bar input, .filter-bar button { padding: 8px 12px; font-size: 12px; }
             .admin-card { padding: 15px; }
             .admin-card h2 { font-size: 16px; }
             .service-dynamic-item { flex-wrap: wrap; gap: 5px; padding: 8px; }
@@ -312,6 +323,13 @@
             <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> SAIR</button>
         </div>
 
+        <!-- NOVO CARD DE FATURAMENTO -->
+        <div class="admin-card revenue-card">
+            <h2><i class="fas fa-dollar-sign"></i> FATURAMENTO</h2>
+            <div class="revenue-value" id="revenueValue">R$ 0,00</div>
+            <div id="revenueDetail" style="text-align: center; font-size: 12px; color: var(--silver-soft);"></div>
+        </div>
+
         <div class="filter-bar">
             <select id="filterMonth">
                 <option value="">Todos os meses</option>
@@ -327,14 +345,17 @@
                 <option value="2026" selected>2026</option>
                 <option value="2027">2027</option>
             </select>
+            <!-- NOVO FILTRO POR DIA -->
+            <input type="date" id="filterDay">
             <button onclick="filterBookings()"><i class="fas fa-search"></i> FILTRAR</button>
             <button onclick="loadTodaysBookings()"><i class="fas fa-calendar-day"></i> HOJE</button>
             <button onclick="loadAllBookings()"><i class="fas fa-list"></i> TODAS</button>
+            <button onclick="clearFilters()"><i class="fas fa-undo-alt"></i> LIMPAR</button>
         </div>
 
         <div class="admin-grid">
             <div class="admin-card reservas-card">
-                <h2><i class="fas fa-calendar-alt"></i> RESERVAS DO DIA</h2>
+                <h2><i class="fas fa-calendar-alt"></i> RESERVAS</h2>
                 <div class="reservas-header">
                     <h3 id="reservasTitle">Reservas de Hoje</h3>
                     <span class="badge" id="reservasCount">0 reservas</span>
@@ -428,6 +449,40 @@ Mogi das Cruzes - SP</textarea></div>
         let allBookings = [], currentPhotoPreview = null;
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
+
+        // ========== FUNÇÃO PARA CALCULAR FATURAMENTO ==========
+        function calculateRevenue(bookings) {
+            const services = getServices();
+            let totalRevenue = 0;
+            const serviceCount = {};
+            
+            bookings.forEach(booking => {
+                const serviceName = booking.service;
+                const foundService = services.find(s => s.name === serviceName);
+                const price = foundService ? foundService.price : 0;
+                totalRevenue += price;
+                
+                serviceCount[serviceName] = (serviceCount[serviceName] || 0) + 1;
+            });
+            
+            // Atualizar display do faturamento
+            document.getElementById('revenueValue').innerHTML = `R$ ${totalRevenue.toFixed(2)}`;
+            
+            // Detalhamento opcional
+            let detailHtml = '';
+            if (Object.keys(serviceCount).length > 0) {
+                detailHtml = '<small>';
+                for (const [service, count] of Object.entries(serviceCount)) {
+                    const servicePrice = services.find(s => s.name === service)?.price || 0;
+                    detailHtml += `${service}: ${count}x (R$ ${(servicePrice * count).toFixed(2)}) &nbsp;|&nbsp; `;
+                }
+                detailHtml = detailHtml.slice(0, -15);
+                detailHtml += '</small>';
+            }
+            document.getElementById('revenueDetail').innerHTML = detailHtml;
+            
+            return totalRevenue;
+        }
 
         // ========== FUNÇÕES DE REDIMENSIONAMENTO DE IMAGEM ==========
         async function resizeImage(file, maxWidth = 500, maxHeight = 500, quality = 0.7) {
@@ -719,47 +774,47 @@ Mogi das Cruzes - SP</textarea></div>
         }
 
         // ========== FUNÇÃO CORRIGIDA PARA ATUALIZAR BARBEIRO ==========
-async function updateBarbeiroAPI(id, name, novaFoto) {
-    try {
-        // Buscar os dados atuais do barbeiro primeiro
-        const getResponse = await fetch(API_URL + '/api/barbers/' + id);
-        let barbeiroAtual = null;
-        let fotoAtual = 'images/avatar.png';
-        
-        if (getResponse.ok) {
-            barbeiroAtual = await getResponse.json();
-            if (barbeiroAtual && barbeiroAtual.photo) {
-                fotoAtual = barbeiroAtual.photo;
+        async function updateBarbeiroAPI(id, name, novaFoto) {
+            try {
+                // Buscar os dados atuais do barbeiro primeiro
+                const getResponse = await fetch(API_URL + '/api/barbers/' + id);
+                let barbeiroAtual = null;
+                let fotoAtual = 'images/avatar.png';
+                
+                if (getResponse.ok) {
+                    barbeiroAtual = await getResponse.json();
+                    if (barbeiroAtual && barbeiroAtual.photo) {
+                        fotoAtual = barbeiroAtual.photo;
+                    }
+                }
+                
+                // Se o usuário enviou uma nova foto, usar ela. Caso contrário, manter a foto atual
+                const photoToSend = novaFoto || fotoAtual;
+                
+                console.log('📸 Atualizando barbeiro:', { id, name, temFotoNova: !!novaFoto, fotoFinal: photoToSend ? 'ok' : 'vazia' });
+                
+                const response = await fetch(API_URL + '/api/barbers/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim(), photo: photoToSend })
+                });
+                
+                if (response.ok) {
+                    await loadBarbeiros();
+                    showToast('Sucesso', 'Barbeiro atualizado!');
+                    return true;
+                } else {
+                    const error = await response.json();
+                    console.error('Erro do servidor:', error);
+                    showToast('Erro', error.error || 'Não foi possível atualizar');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar:', error);
+                showToast('Erro', 'Erro de conexão ao atualizar barbeiro');
+                return false;
             }
         }
-        
-        // Se o usuário enviou uma nova foto, usar ela. Caso contrário, manter a foto atual
-        const photoToSend = novaFoto || fotoAtual;
-        
-        console.log('📸 Atualizando barbeiro:', { id, name, temFotoNova: !!novaFoto, fotoFinal: photoToSend ? 'ok' : 'vazia' });
-        
-        const response = await fetch(API_URL + '/api/barbers/' + id, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name.trim(), photo: photoToSend })
-        });
-        
-        if (response.ok) {
-            await loadBarbeiros();
-            showToast('Sucesso', 'Barbeiro atualizado!');
-            return true;
-        } else {
-            const error = await response.json();
-            console.error('Erro do servidor:', error);
-            showToast('Erro', error.error || 'Não foi possível atualizar');
-            return false;
-        }
-    } catch (error) {
-        console.error('Erro ao atualizar:', error);
-        showToast('Erro', 'Erro de conexão ao atualizar barbeiro');
-        return false;
-    }
-}
 
         function renderBarbeiros(barbeiros) {
             const container = document.getElementById('barbeirosList');
@@ -813,14 +868,29 @@ async function updateBarbeiroAPI(id, name, novaFoto) {
         }
 
         function saveEditBarber() {
-    const newName = document.getElementById('editBarberName').value.trim();
-    if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
-    if (editBarberId) {
-        // Passar editPhotoPreview (pode ser null se não trocou a foto)
-        updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
-    }
-    closeEditModal();
-}
+            const newName = document.getElementById('editBarberName').value.trim();
+            if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
+            if (editBarberId) {
+                // Passar editPhotoPreview (pode ser null se não trocou a foto)
+                updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
+            }
+            closeEditModal();
+        }
+
+        async function deleteBarbeiroAPI(id) {
+            try {
+                const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' });
+                if (response.ok) {
+                    await loadBarbeiros();
+                    showToast('Sucesso', 'Barbeiro removido.');
+                } else {
+                    showToast('Erro', 'Erro ao remover.');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro', 'Erro de conexão.');
+            }
+        }
 
         function openDeleteModal(id, name) {
             deleteBarberId = id;
@@ -1018,6 +1088,7 @@ async function updateBarbeiroAPI(id, name, novaFoto) {
                     allBookings = await r.json();
                     displayBookings(allBookings);
                     document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas';
+                    calculateRevenue(allBookings);
                 }
             } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
         }
@@ -1030,19 +1101,50 @@ async function updateBarbeiroAPI(id, name, novaFoto) {
                 if (r.ok) {
                     const b = await r.json();
                     const today = new Date().toISOString().split('T')[0];
-                    displayBookings(b.filter(x => x.date === today));
+                    const filtered = b.filter(x => x.date === today);
+                    displayBookings(filtered);
                     document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')';
+                    calculateRevenue(filtered);
                 }
             } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
         }
 
         function filterBookings() {
-            const m = document.getElementById('filterMonth').value, y = document.getElementById('filterYear').value;
-            if (!m) { showToast('Atenção', 'Selecione um mês.'); return; }
-            const f = allBookings.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; });
-            const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            displayBookings(f);
-            document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y;
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            const dayFilter = document.getElementById('filterDay').value;
+            
+            let filtered = [...allBookings];
+            
+            // Filtrar por dia específico (prioridade)
+            if (dayFilter) {
+                filtered = filtered.filter(b => b.date === dayFilter);
+                const formattedDate = dayFilter.split('-').reverse().join('/');
+                document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`;
+            }
+            // Senão filtrar por mês e ano
+            else if (m && y) {
+                filtered = filtered.filter(b => {
+                    const [by, bm] = b.date.split('-');
+                    return by === y && bm === m;
+                });
+                const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y;
+            }
+            else {
+                showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).');
+                return;
+            }
+            
+            displayBookings(filtered);
+            calculateRevenue(filtered);
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterMonth').value = '';
+            document.getElementById('filterYear').value = '2026';
+            document.getElementById('filterDay').value = '';
+            loadAllBookings();
         }
 
         function displayBookings(b) {
