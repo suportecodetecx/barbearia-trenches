@@ -43,6 +43,7 @@
             background: rgba(10, 15, 28, 0.95); backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(192, 214, 239, 0.2);
         }
+
         .header-main { padding: 10px 0; }
         .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         
@@ -902,7 +903,6 @@
                     const el = document.getElementById(v);
                     if (el && settings.hours[k]) {
                         let val = settings.hours[k];
-                        // FUNÇÃO PARA CONVERTER QUALQUER FORMATO PARA "9h - 19h" ou "9h30 - 18h30"
                         val = converterParaFormatoHorario(val);
                         el.textContent = val;
                         console.log(`🕐 ${k} -> ${val}`);
@@ -933,19 +933,15 @@
     }
 }
 
-// FUNÇÃO PARA CONVERTER QUALQUER FORMATO DE HORÁRIO PARA "9h - 19h" ou "9h30 - 18h30"
 function converterParaFormatoHorario(horarioStr) {
     if (!horarioStr || horarioStr === 'FECHADO') return horarioStr;
     
-    // Extrair todos os números da string
     const numeros = horarioStr.match(/\d+/g);
     if (!numeros || numeros.length < 2) return horarioStr;
     
-    // Processar hora de início
     let inicioHora = parseInt(numeros[0]);
     let inicioMinuto = numeros[1] && numeros[1].length === 2 && parseInt(numeros[1]) < 60 ? parseInt(numeros[1]) : 0;
     
-    // Se o segundo número for maior que 59, provavelmente é a hora final
     let fimHora, fimMinuto;
     if (numeros[1] >= 60 || numeros[1] > 59) {
         fimHora = parseInt(numeros[1]);
@@ -956,13 +952,11 @@ function converterParaFormatoHorario(horarioStr) {
         fimMinuto = numeros[3] ? parseInt(numeros[3]) : (numeros[2] && numeros[2].length === 2 && parseInt(numeros[2]) < 60 ? parseInt(numeros[2]) : 0);
     }
     
-    // Se a hora final tiver 4 dígitos (ex: 1900), ajustar
     if (fimHora > 99) {
         fimHora = Math.floor(fimHora / 100);
         fimMinuto = fimHora % 100;
     }
     
-    // Formatar
     let inicioStr = inicioHora.toString();
     if (inicioMinuto > 0) inicioStr += 'h' + inicioMinuto.toString().padStart(2, '0');
     else inicioStr += 'h';
@@ -1069,7 +1063,6 @@ function converterParaFormatoHorario(horarioStr) {
             if (bm) bm.style.display = 'block';
         }
         
-        // ===== FUNÇÃO PARA CARREGAR MINHA AGENDA =====
         async function carregarMinhaAgenda() {
             if (!currentUser) {
                 showMessage('Faça login para ver sua agenda');
@@ -1194,7 +1187,6 @@ function converterParaFormatoHorario(horarioStr) {
             if (fb) fb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
             if (mb) mb.addEventListener('click', (e) => { e.preventDefault(); openBookingModal(null); });
             
-            // Botão Minha Agenda
             const myBookingsBtn = document.getElementById('myBookingsBtn');
             if (myBookingsBtn) {
                 myBookingsBtn.addEventListener('click', () => {

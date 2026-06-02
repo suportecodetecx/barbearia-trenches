@@ -48,7 +48,7 @@
         .logout-btn { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .logout-btn:hover { transform: scale(1.02); box-shadow: 0 0 20px #ff5722; }
 
-        /* NOVO CARD DE FATURAMENTO */
+        /* CARD DE FATURAMENTO */
         .revenue-card {
             background: linear-gradient(135deg, #1a2a3a, #0f172a);
             border: 2px solid #ffd700;
@@ -57,6 +57,98 @@
         .revenue-card h2 { color: #ffd700 !important; border-bottom-color: #ffd700 !important; }
         .revenue-value { font-size: 32px; font-weight: 800; color: #ffd700; text-align: center; margin: 15px 0; letter-spacing: 2px; }
         @media (max-width: 768px) { .revenue-value { font-size: 28px; } }
+
+        /* 🚨 CARD DE INSPIRAÇÃO (STATUS DA ASSINATURA) 🚨 */
+        .inspiration-card {
+            background: linear-gradient(135deg, #1a0a0a, #2a1515);
+            border: 3px solid #ff4444;
+            margin-bottom: 20px;
+        }
+        .inspiration-card h2 { color: #ff6666 !important; border-bottom-color: #ff4444 !important; }
+        
+        /* TIMER - CONTAGEM REGRESSIVA ESTILO RELÓGIO */
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .timer-block {
+            background: rgba(0,0,0,0.6);
+            border-radius: 12px;
+            padding: 10px 15px;
+            min-width: 70px;
+            text-align: center;
+            backdrop-filter: blur(4px);
+        }
+        .timer-number {
+            font-size: 32px;
+            font-weight: 800;
+            font-family: 'Montserrat', monospace;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .timer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--silver-soft);
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+        
+        .inspiration-status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 10px 0;
+        }
+        .inspiration-status.ativo {
+            background: rgba(0,255,0,0.1);
+            border: 1px solid #00ff00;
+        }
+        .inspiration-status.vencido {
+            background: rgba(255,0,0,0.2);
+            border: 1px solid #ff0000;
+            animation: blink-red 0.8s infinite;
+        }
+        .inspiration-status.alerta {
+            background: rgba(255,165,0,0.2);
+            border: 1px solid #ffaa00;
+            animation: blink-orange 1s infinite;
+        }
+        @keyframes blink-red {
+            0%, 100% { background: rgba(255,0,0,0.2); box-shadow: 0 0 10px rgba(255,0,0,0.3); }
+            50% { background: rgba(255,0,0,0.5); box-shadow: 0 0 30px rgba(255,0,0,0.8); }
+        }
+        @keyframes blink-orange {
+            0%, 100% { background: rgba(255,165,0,0.2); }
+            50% { background: rgba(255,165,0,0.5); }
+        }
+        .inspiration-icon { font-size: 48px; margin-bottom: 10px; }
+        .inspiration-message { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .next-due-date {
+            font-size: 14px;
+            color: var(--silver-soft);
+            margin-top: 10px;
+        }
+        .btn-register-payment {
+            background: linear-gradient(135deg, #00cc44, #009933);
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .btn-register-payment:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px #00ff44;
+        }
 
         .filter-bar {
             background: rgba(15, 23, 42, 0.8); border-radius: 20px; padding: 15px; margin-bottom: 20px;
@@ -264,6 +356,10 @@
             .barbeiro-item { flex-direction: column; text-align: center; }
             .barbeiro-item img { width: 60px; height: 60px; }
             .barbeiro-info { text-align: center; }
+            .countdown-timer { gap: 8px; }
+            .timer-block { padding: 5px 10px; min-width: 55px; }
+            .timer-number { font-size: 22px; }
+            .timer-label { font-size: 8px; }
         }
     </style>
 </head>
@@ -323,7 +419,21 @@
             <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> SAIR</button>
         </div>
 
-        <!-- NOVO CARD DE FATURAMENTO -->
+        <!-- 🚨 CARD DE INSPIRAÇÃO (STATUS DA ASSINATURA) 🚨 -->
+        <div class="admin-card inspiration-card" id="inspirationCard">
+            <h2><i class="fas fa-hourglass-half"></i> ⏰ INSPIRAÇÃO - DATA DE VENCIMENTO</h2>
+            <div id="inspirationStatusContent">
+                <div class="inspiration-status">
+                    <div class="inspiration-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                    <div class="inspiration-message">Carregando...</div>
+                </div>
+            </div>
+            <button class="btn-register-payment" id="registerPaymentBtn">
+                <i class="fas fa-credit-card"></i> REGISTRAR PAGAMENTO MENSAL
+            </button>
+        </div>
+
+        <!-- CARD DE FATURAMENTO -->
         <div class="admin-card revenue-card">
             <h2><i class="fas fa-dollar-sign"></i> FATURAMENTO</h2>
             <div class="revenue-value" id="revenueValue">R$ 0,00</div>
@@ -345,7 +455,6 @@
                 <option value="2026" selected>2026</option>
                 <option value="2027">2027</option>
             </select>
-            <!-- NOVO FILTRO POR DIA -->
             <input type="date" id="filterDay">
             <button onclick="filterBookings()"><i class="fas fa-search"></i> FILTRAR</button>
             <button onclick="loadTodaysBookings()"><i class="fas fa-calendar-day"></i> HOJE</button>
@@ -444,11 +553,205 @@ Mogi das Cruzes - SP</textarea></div>
 
     <script>
         // ========== CONFIGURAÇÃO CORRETA DO BACKEND ==========
-        const API_URL = 'https://barbearia-trenches.codetecx.com';
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000' 
+            : 'https://barbearia-trenches.codetecx.com';
         
         let allBookings = [], currentPhotoPreview = null;
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
+        let countdownInterval = null;
+
+        // ========== FUNÇÃO PARA ATUALIZAR TIMER ==========
+        function updateCountdown(targetDate, statusType) {
+            const now = new Date();
+            const diff = targetDate - now;
+            
+            if (diff <= 0) {
+                if (countdownInterval) clearInterval(countdownInterval);
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (86400000)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (3600000)) / (1000 * 60));
+            const seconds = Math.floor((diff % (60000)) / 1000);
+            
+            const timerDias = document.getElementById('timerDias');
+            const timerHoras = document.getElementById('timerHoras');
+            const timerMinutos = document.getElementById('timerMinutos');
+            const timerSegundos = document.getElementById('timerSegundos');
+            
+            if (timerDias) timerDias.textContent = String(days).padStart(2, '0');
+            if (timerHoras) timerHoras.textContent = String(hours).padStart(2, '0');
+            if (timerMinutos) timerMinutos.textContent = String(minutes).padStart(2, '0');
+            if (timerSegundos) timerSegundos.textContent = String(seconds).padStart(2, '0');
+        }
+
+        // ========== FUNÇÃO PARA CARREGAR STATUS DO SITE (INSPIRAÇÃO) ==========
+        async function loadInspirationStatus() {
+            try {
+                const response = await fetch(API_URL + '/api/payment-status');
+                if (response.ok) {
+                    const status = await response.json();
+                    const container = document.getElementById('inspirationStatusContent');
+                    const today = new Date();
+                    
+                    // CORREÇÃO DE FUSO HORÁRIO: Adicionar 3 horas para horário Brasil
+                    let nextDue = new Date(status.nextDueDate);
+                    nextDue = new Date(nextDue.getTime() + (3 * 60 * 60 * 1000));
+                    
+                    const daysLeft = Math.ceil((nextDue - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    
+                    if (status.isValid && daysLeft > 0) {
+                        // SITE ATIVO - VERDE
+                        container.innerHTML = `
+                            <div class="inspiration-status ativo">
+                                <div class="inspiration-icon"><i class="fas fa-check-circle" style="color: #00ff00;"></i></div>
+                                <div class="inspiration-message" style="color: #00ff00;">✅ SITE NO AR!</div>
+                                <div class="countdown-timer">
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerDias">--</div>
+                                        <div class="timer-label">DIAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerHoras">--</div>
+                                        <div class="timer-label">HORAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerMinutos">--</div>
+                                        <div class="timer-label">MINUTOS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerSegundos">--</div>
+                                        <div class="timer-label">SEGUNDOS</div>
+                                    </div>
+                                </div>
+                                <div class="next-due-date">📅 Vencimento: ${nextDue.toLocaleDateString('pt-BR')}</div>
+                            </div>
+                        `;
+                        document.getElementById('inspirationCard').style.border = '3px solid #00ff00';
+                        document.getElementById('inspirationCard').style.animation = 'none';
+                        
+                        // Iniciar timer
+                        updateCountdown(nextDue, 'ativo');
+                        countdownInterval = setInterval(() => updateCountdown(nextDue, 'ativo'), 1000);
+                    } 
+                    else if (status.graceDaysLeft > 0 && status.graceDaysLeft <= 5) {
+                        const cor = status.graceDaysLeft <= 3 ? '#ff0000' : '#ffaa00';
+                        const mensagem = status.graceDaysLeft <= 3 ? '🔴 BLOQUEIO IMINENTE!' : '⚠️ ATENÇÃO!';
+                        
+                        container.innerHTML = `
+                            <div class="inspiration-status alerta">
+                                <div class="inspiration-icon"><i class="fas fa-exclamation-triangle" style="color: ${cor};"></i></div>
+                                <div class="inspiration-message" style="color: ${cor};">${mensagem}</div>
+                                <div class="countdown-timer">
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerDias">--</div>
+                                        <div class="timer-label">DIAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerHoras">--</div>
+                                        <div class="timer-label">HORAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerMinutos">--</div>
+                                        <div class="timer-label">MINUTOS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number" id="timerSegundos">--</div>
+                                        <div class="timer-label">SEGUNDOS</div>
+                                    </div>
+                                </div>
+                                <div class="next-due-date">⚠️ Vence em: ${nextDue.toLocaleDateString('pt-BR')}</div>
+                            </div>
+                        `;
+                        document.getElementById('inspirationCard').style.border = `3px solid ${cor}`;
+                        document.getElementById('inspirationCard').style.animation = 'pulse-red 1s infinite';
+                        
+                        if (nextDue > today) {
+                            updateCountdown(nextDue, 'alerta');
+                            countdownInterval = setInterval(() => updateCountdown(nextDue, 'alerta'), 1000);
+                        }
+                    } 
+                    else {
+                        // SITE BLOQUEADO
+                        container.innerHTML = `
+                            <div class="inspiration-status vencido">
+                                <div class="inspiration-icon"><i class="fas fa-skull-crossbones" style="color: #ff0000;"></i></div>
+                                <div class="inspiration-message" style="color: #ff0000;">💀 SITE BLOQUEADO!</div>
+                                <div class="countdown-timer">
+                                    <div class="timer-block">
+                                        <div class="timer-number">00</div>
+                                        <div class="timer-label">DIAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number">00</div>
+                                        <div class="timer-label">HORAS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number">00</div>
+                                        <div class="timer-label">MINUTOS</div>
+                                    </div>
+                                    <div class="timer-block">
+                                        <div class="timer-number">00</div>
+                                        <div class="timer-label">SEGUNDOS</div>
+                                    </div>
+                                </div>
+                                <div class="next-due-date">⏰ Bloqueado há ${status.daysOverdue} dias</div>
+                            </div>
+                        `;
+                        document.getElementById('inspirationCard').style.border = '3px solid #ff0000';
+                        document.getElementById('inspirationCard').style.animation = 'pulse-red 0.5s infinite';
+                    }
+                } else {
+                    document.getElementById('inspirationStatusContent').innerHTML = `
+                        <div class="inspiration-status">
+                            <div class="inspiration-icon"><i class="fas fa-question-circle"></i></div>
+                            <div class="inspiration-message">Não foi possível carregar o status</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar status:', error);
+                document.getElementById('inspirationStatusContent').innerHTML = `
+                    <div class="inspiration-status">
+                        <div class="inspiration-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="inspiration-message">Erro de conexão</div>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== FUNÇÃO PARA REGISTRAR PAGAMENTO ==========
+        async function registerPayment() {
+            const adminKey = prompt('🔑 Digite a chave de administrador para registrar o pagamento:');
+            if (!adminKey) return;
+            
+            try {
+                const response = await fetch(API_URL + '/api/register-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminKey: adminKey })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('✅ Pagamento Registrado', 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.');
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    await loadInspirationStatus();
+                    setTimeout(() => { window.location.reload(); }, 2000);
+                } else {
+                    showToast('❌ Erro', result.error || 'Chave inválida! Contate o suporte.');
+                }
+            } catch (error) {
+                console.error('Erro ao registrar pagamento:', error);
+                showToast('❌ Erro', 'Erro de conexão ao registrar pagamento');
+            }
+        }
 
         // ========== FUNÇÃO PARA CALCULAR FATURAMENTO ==========
         function calculateRevenue(bookings) {
@@ -461,14 +764,11 @@ Mogi das Cruzes - SP</textarea></div>
                 const foundService = services.find(s => s.name === serviceName);
                 const price = foundService ? foundService.price : 0;
                 totalRevenue += price;
-                
                 serviceCount[serviceName] = (serviceCount[serviceName] || 0) + 1;
             });
             
-            // Atualizar display do faturamento
             document.getElementById('revenueValue').innerHTML = `R$ ${totalRevenue.toFixed(2)}`;
             
-            // Detalhamento opcional
             let detailHtml = '';
             if (Object.keys(serviceCount).length > 0) {
                 detailHtml = '<small>';
@@ -480,7 +780,6 @@ Mogi das Cruzes - SP</textarea></div>
                 detailHtml += '</small>';
             }
             document.getElementById('revenueDetail').innerHTML = detailHtml;
-            
             return totalRevenue;
         }
 
@@ -493,7 +792,6 @@ Mogi das Cruzes - SP</textarea></div>
                     img.onload = function() {
                         let width = img.width;
                         let height = img.height;
-                        
                         if (width > height) {
                             if (width > maxWidth) {
                                 height = (height * maxWidth) / width;
@@ -505,16 +803,12 @@ Mogi das Cruzes - SP</textarea></div>
                                 height = maxHeight;
                             }
                         }
-                        
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
                         const resizedBase64 = canvas.toDataURL('image/jpeg', quality);
-                        const sizeInKB = Math.round(resizedBase64.length / 1024);
-                        console.log(`📸 Foto redimensionada: ${width}x${height}, ${sizeInKB}KB`);
                         resolve(resizedBase64);
                     };
                     img.onerror = reject;
@@ -532,12 +826,7 @@ Mogi das Cruzes - SP</textarea></div>
         async function saveAlmoco() {
             const inicio = document.getElementById('almocoInicio').value;
             const fim = document.getElementById('almocoFim').value;
-            
-            if (!inicio || !fim) {
-                showToast('Atenção', 'Defina o horário de início e fim do almoço');
-                return;
-            }
-            
+            if (!inicio || !fim) { showToast('Atenção', 'Defina o horário de início e fim do almoço'); return; }
             const dias = [];
             if (document.getElementById('almocoSeg').checked) dias.push(1);
             if (document.getElementById('almocoTer').checked) dias.push(2);
@@ -545,44 +834,17 @@ Mogi das Cruzes - SP</textarea></div>
             if (document.getElementById('almocoQui').checked) dias.push(4);
             if (document.getElementById('almocoSex').checked) dias.push(5);
             if (document.getElementById('almocoSab').checked) dias.push(6);
-            
-            if (dias.length === 0) {
-                showToast('Atenção', 'Selecione pelo menos um dia para o horário de almoço');
-                return;
-            }
-            
+            if (dias.length === 0) { showToast('Atenção', 'Selecione pelo menos um dia para o horário de almoço'); return; }
             const almoco = { inicio, fim, dias };
-            
             try {
                 const response = await fetch(API_URL + '/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ almoco: almoco })
                 });
-                
-                if (response.ok) {
-                    console.log('✅ Horário de almoço salvo:', almoco);
-                    document.getElementById('almocoInicio').value = almoco.inicio;
-                    document.getElementById('almocoFim').value = almoco.fim;
-                    document.getElementById('almocoSeg').checked = almoco.dias.includes(1);
-                    document.getElementById('almocoTer').checked = almoco.dias.includes(2);
-                    document.getElementById('almocoQua').checked = almoco.dias.includes(3);
-                    document.getElementById('almocoQui').checked = almoco.dias.includes(4);
-                    document.getElementById('almocoSex').checked = almoco.dias.includes(5);
-                    document.getElementById('almocoSab').checked = almoco.dias.includes(6);
-                    
-                    showToast('Sucesso', `Horário de almoço salvo: ${inicio} às ${fim}`);
-                    
-                    setTimeout(() => { window.location.reload(); }, 1500);
-                } else {
-                    const error = await response.json();
-                    console.error('Erro:', error);
-                    showToast('Erro', 'Não foi possível salvar o horário de almoço');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                showToast('Erro', 'Erro de conexão ao salvar');
-            }
+                if (response.ok) { showToast('Sucesso', `Horário de almoço salvo: ${inicio} às ${fim}`); setTimeout(() => { window.location.reload(); }, 1500); }
+                else { showToast('Erro', 'Não foi possível salvar o horário de almoço'); }
+            } catch (error) { showToast('Erro', 'Erro de conexão ao salvar'); }
         }
 
         async function loadAlmoco() {
@@ -590,8 +852,6 @@ Mogi das Cruzes - SP</textarea></div>
                 const response = await fetch(API_URL + '/api/settings');
                 if (response.ok) {
                     const settings = await response.json();
-                    console.log('📥 Configurações carregadas:', settings);
-                    
                     if (settings.almoco) {
                         document.getElementById('almocoInicio').value = settings.almoco.inicio || '12:00';
                         document.getElementById('almocoFim').value = settings.almoco.fim || '13:00';
@@ -602,49 +862,22 @@ Mogi das Cruzes - SP</textarea></div>
                         document.getElementById('almocoQui').checked = dias.includes(4);
                         document.getElementById('almocoSex').checked = dias.includes(5);
                         document.getElementById('almocoSab').checked = dias.includes(6);
-                    } else {
-                        document.getElementById('almocoInicio').value = '12:00';
-                        document.getElementById('almocoFim').value = '13:00';
-                        document.getElementById('almocoSeg').checked = false;
-                        document.getElementById('almocoTer').checked = true;
-                        document.getElementById('almocoQua').checked = true;
-                        document.getElementById('almocoQui').checked = true;
-                        document.getElementById('almocoSex').checked = true;
-                        document.getElementById('almocoSab').checked = true;
                     }
                 }
-            } catch (error) {
-                console.error('Erro ao carregar horário de almoço:', error);
-            }
+            } catch (error) { console.error('Erro ao carregar horário de almoço:', error); }
         }
 
-        // ========== DELETAR RESERVA (CORRIGIDO) ==========
         async function deleteBooking(bookingId, bookingDate, bookingTime, userName) {
             try {
-                console.log('🗑️ Tentando cancelar reserva:', { bookingId, bookingDate, bookingTime, userName });
-                
                 const response = await fetch(API_URL + '/api/delete-booking', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: bookingId, date: bookingDate, time: bookingTime, userId: userName })
                 });
-                
                 const result = await response.json();
-                console.log('📥 Resposta do servidor:', result);
-                
-                if (response.ok) {
-                    showToast('Reserva Cancelada', 'A reserva foi removida com sucesso!');
-                    await loadTodaysBookings();
-                    return true;
-                } else {
-                    showToast('Erro', result.message || 'Não foi possível cancelar');
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ Erro ao deletar:', error);
-                showToast('Erro', 'Erro de conexão: ' + error.message);
-                return false;
-            }
+                if (response.ok) { showToast('Reserva Cancelada', 'A reserva foi removida com sucesso!'); await loadTodaysBookings(); return true; }
+                else { showToast('Erro', result.message || 'Não foi possível cancelar'); return false; }
+            } catch (error) { showToast('Erro', 'Erro de conexão'); return false; }
         }
 
         function openDeleteBookingModal(bookingId, date, time, userName, service) {
@@ -652,20 +885,8 @@ Mogi das Cruzes - SP</textarea></div>
             document.getElementById('deleteBookingText').innerHTML = `Cancelar reserva de <strong>${escapeHtml(userName)}</strong><br>${date.split('-').reverse().join('/')} às ${time}<br>Serviço: ${service}?`;
             document.getElementById('deleteBookingModal').classList.add('show');
         }
-
-        function closeDeleteBookingModal() {
-            document.getElementById('deleteBookingModal').classList.remove('show');
-            deleteBookingData = null;
-        }
-
-        document.getElementById('confirmDeleteBookingBtn').onclick = async function() {
-            if (deleteBookingData) {
-                await deleteBooking(deleteBookingData.id, deleteBookingData.date, deleteBookingData.time, deleteBookingData.userName);
-                deleteBookingData = null;
-                closeDeleteBookingModal();
-            }
-        };
-
+        function closeDeleteBookingModal() { document.getElementById('deleteBookingModal').classList.remove('show'); deleteBookingData = null; }
+        document.getElementById('confirmDeleteBookingBtn').onclick = async function() { if (deleteBookingData) { await deleteBooking(deleteBookingData.id, deleteBookingData.date, deleteBookingData.time, deleteBookingData.userName); deleteBookingData = null; closeDeleteBookingModal(); } };
         document.getElementById('deleteBookingModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteBookingModal(); });
 
         // ========== CONFIGURAÇÕES GLOBAIS ==========
@@ -685,39 +906,19 @@ Mogi das Cruzes - SP</textarea></div>
                     if (settings.phone) document.getElementById('adminPhone').value = settings.phone;
                     if (settings.instagram) document.getElementById('adminInstagram').value = settings.instagram;
                     if (settings.address) document.getElementById('adminAddress').value = settings.address;
-                    if (settings.services && settings.services.length > 0) {
-                        window._tempServices = settings.services;
-                        renderServices();
-                    }
-                    if (settings.blockedDates) {
-                        renderBlockedDates(settings.blockedDates);
-                    }
-                } else {
-                    loadLocalSettings();
-                }
-            } catch (error) {
-                console.error('Erro ao carregar configurações:', error);
-                loadLocalSettings();
-            }
+                    if (settings.services && settings.services.length > 0) { window._tempServices = settings.services; renderServices(); }
+                    if (settings.blockedDates) { renderBlockedDates(settings.blockedDates); }
+                } else { loadLocalSettings(); }
+            } catch (error) { console.error('Erro ao carregar configurações:', error); loadLocalSettings(); }
             await loadAlmoco();
         }
 
         async function saveSettings(data) {
             try {
-                const response = await fetch(API_URL + '/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (response.ok) {
-                    showToast('Sucesso', 'Configurações salvas globalmente!');
-                    return true;
-                }
+                const response = await fetch(API_URL + '/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                if (response.ok) { showToast('Sucesso', 'Configurações salvas globalmente!'); return true; }
                 return false;
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                return false;
-            }
+            } catch (error) { console.error('Erro ao salvar:', error); return false; }
         }
 
         function loadLocalSettings() {
@@ -745,84 +946,34 @@ Mogi das Cruzes - SP</textarea></div>
         async function loadBarbeiros() {
             try {
                 const response = await fetch(API_URL + '/api/barbers');
-                if (response.ok) {
-                    const barbeiros = await response.json();
-                    renderBarbeiros(barbeiros);
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-            }
+                if (response.ok) { const barbeiros = await response.json(); renderBarbeiros(barbeiros); }
+            } catch (error) { console.error('Erro:', error); }
         }
 
         async function addBarbeiroAPI(name, photo) {
             try {
-                const response = await fetch(API_URL + '/api/barbers', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, photo: photo || 'images/avatar.png' })
-                });
-                if (response.ok) {
-                    await loadBarbeiros();
-                    showToast('Sucesso', name + ' adicionado!');
-                    return true;
-                }
+                const response = await fetch(API_URL + '/api/barbers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, photo: photo || 'images/avatar.png' }) });
+                if (response.ok) { await loadBarbeiros(); showToast('Sucesso', name + ' adicionado!'); return true; }
                 return false;
-            } catch (error) {
-                console.error('Erro:', error);
-                return false;
-            }
+            } catch (error) { console.error('Erro:', error); return false; }
         }
 
-        // ========== FUNÇÃO CORRIGIDA PARA ATUALIZAR BARBEIRO ==========
         async function updateBarbeiroAPI(id, name, novaFoto) {
             try {
-                // Buscar os dados atuais do barbeiro primeiro
                 const getResponse = await fetch(API_URL + '/api/barbers/' + id);
-                let barbeiroAtual = null;
                 let fotoAtual = 'images/avatar.png';
-                
-                if (getResponse.ok) {
-                    barbeiroAtual = await getResponse.json();
-                    if (barbeiroAtual && barbeiroAtual.photo) {
-                        fotoAtual = barbeiroAtual.photo;
-                    }
-                }
-                
-                // Se o usuário enviou uma nova foto, usar ela. Caso contrário, manter a foto atual
+                if (getResponse.ok) { const barbeiroAtual = await getResponse.json(); if (barbeiroAtual && barbeiroAtual.photo) { fotoAtual = barbeiroAtual.photo; } }
                 const photoToSend = novaFoto || fotoAtual;
-                
-                console.log('📸 Atualizando barbeiro:', { id, name, temFotoNova: !!novaFoto, fotoFinal: photoToSend ? 'ok' : 'vazia' });
-                
-                const response = await fetch(API_URL + '/api/barbers/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name.trim(), photo: photoToSend })
-                });
-                
-                if (response.ok) {
-                    await loadBarbeiros();
-                    showToast('Sucesso', 'Barbeiro atualizado!');
-                    return true;
-                } else {
-                    const error = await response.json();
-                    console.error('Erro do servidor:', error);
-                    showToast('Erro', error.error || 'Não foi possível atualizar');
-                    return false;
-                }
-            } catch (error) {
-                console.error('Erro ao atualizar:', error);
-                showToast('Erro', 'Erro de conexão ao atualizar barbeiro');
-                return false;
-            }
+                const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), photo: photoToSend }) });
+                if (response.ok) { await loadBarbeiros(); showToast('Sucesso', 'Barbeiro atualizado!'); return true; }
+                else { showToast('Erro', 'Não foi possível atualizar'); return false; }
+            } catch (error) { console.error('Erro ao atualizar:', error); showToast('Erro', 'Erro de conexão'); return false; }
         }
 
         function renderBarbeiros(barbeiros) {
             const container = document.getElementById('barbeirosList');
             if (!container) return;
-            if (!barbeiros || barbeiros.length === 0) {
-                container.innerHTML = '<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>';
-                return;
-            }
+            if (!barbeiros || barbeiros.length === 0) { container.innerHTML = '<p style="color:var(--silver-soft);text-align:center;">Nenhum barbeiro cadastrado</p>'; return; }
             container.innerHTML = barbeiros.map(b => `
                 <div class="barbeiro-item">
                     <img src="${b.photo || 'images/avatar.png'}" onerror="this.src='images/avatar.png'">
@@ -841,331 +992,59 @@ Mogi das Cruzes - SP</textarea></div>
             document.getElementById('editBarberPhoto').value = '';
             document.getElementById('editBarberModal').classList.add('show');
         }
-
-        function closeEditModal() {
-            document.getElementById('editBarberModal').classList.remove('show');
-            editBarberId = null;
-            editPhotoPreview = null;
-        }
-
+        function closeEditModal() { document.getElementById('editBarberModal').classList.remove('show'); editBarberId = null; editPhotoPreview = null; }
         async function previewEditPhoto(input) {
             const file = input.files[0];
             if (file) {
-                try {
-                    const resizedBase64 = await resizeImage(file, 400, 400, 0.8);
-                    editPhotoPreview = resizedBase64;
-                    document.getElementById('editPhotoPreview').innerHTML = '<img src="' + editPhotoPreview + '" class="preview-image">';
-                } catch (error) {
-                    console.error('Erro ao redimensionar:', error);
-                    const r = new FileReader();
-                    r.onload = function(e) {
-                        editPhotoPreview = e.target.result;
-                        document.getElementById('editPhotoPreview').innerHTML = '<img src="' + editPhotoPreview + '" class="preview-image">';
-                    };
-                    r.readAsDataURL(file);
-                }
+                try { const resizedBase64 = await resizeImage(file, 400, 400, 0.8); editPhotoPreview = resizedBase64; document.getElementById('editPhotoPreview').innerHTML = '<img src="' + editPhotoPreview + '" class="preview-image">'; }
+                catch (error) { const r = new FileReader(); r.onload = function(e) { editPhotoPreview = e.target.result; document.getElementById('editPhotoPreview').innerHTML = '<img src="' + editPhotoPreview + '" class="preview-image">'; }; r.readAsDataURL(file); }
             }
         }
-
-        function saveEditBarber() {
-            const newName = document.getElementById('editBarberName').value.trim();
-            if (!newName) { showToast('Atenção', 'Digite um nome.'); return; }
-            if (editBarberId) {
-                // Passar editPhotoPreview (pode ser null se não trocou a foto)
-                updateBarbeiroAPI(editBarberId, newName, editPhotoPreview);
-            }
-            closeEditModal();
-        }
-
-        async function deleteBarbeiroAPI(id) {
-            try {
-                const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' });
-                if (response.ok) {
-                    await loadBarbeiros();
-                    showToast('Sucesso', 'Barbeiro removido.');
-                } else {
-                    showToast('Erro', 'Erro ao remover.');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                showToast('Erro', 'Erro de conexão.');
-            }
-        }
-
-        function openDeleteModal(id, name) {
-            deleteBarberId = id;
-            document.getElementById('deleteText').textContent = 'Remover ' + name + '?';
-            document.getElementById('deleteConfirmModal').classList.add('show');
-        }
-
-        function closeDeleteModal() {
-            document.getElementById('deleteConfirmModal').classList.remove('show');
-            deleteBarberId = null;
-        }
-
-        document.getElementById('confirmDeleteBtn').onclick = function() {
-            if (deleteBarberId) {
-                deleteBarbeiroAPI(deleteBarberId);
-                deleteBarberId = null;
-                closeDeleteModal();
-            }
-        };
-
+        function saveEditBarber() { const newName = document.getElementById('editBarberName').value.trim(); if (!newName) { showToast('Atenção', 'Digite um nome.'); return; } if (editBarberId) { updateBarbeiroAPI(editBarberId, newName, editPhotoPreview); } closeEditModal(); }
+        async function deleteBarbeiroAPI(id) { try { const response = await fetch(API_URL + '/api/barbers/' + id, { method: 'DELETE' }); if (response.ok) { await loadBarbeiros(); showToast('Sucesso', 'Barbeiro removido.'); } else { showToast('Erro', 'Erro ao remover.'); } } catch (error) { showToast('Erro', 'Erro de conexão.'); } }
+        function openDeleteModal(id, name) { deleteBarberId = id; document.getElementById('deleteText').textContent = 'Remover ' + name + '?'; document.getElementById('deleteConfirmModal').classList.add('show'); }
+        function closeDeleteModal() { document.getElementById('deleteConfirmModal').classList.remove('show'); deleteBarberId = null; }
+        document.getElementById('confirmDeleteBtn').onclick = function() { if (deleteBarberId) { deleteBarbeiroAPI(deleteBarberId); deleteBarberId = null; closeDeleteModal(); } };
         document.getElementById('editBarberModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
         document.getElementById('deleteConfirmModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
 
         async function previewPhoto(input) {
             const file = input.files[0];
             if (file) {
-                try {
-                    const resizedBase64 = await resizeImage(file, 400, 400, 0.8);
-                    currentPhotoPreview = resizedBase64;
-                    document.getElementById('previewContainer').innerHTML = '<img src="' + currentPhotoPreview + '" class="preview-image">';
-                } catch (error) {
-                    console.error('Erro ao redimensionar:', error);
-                    const r = new FileReader();
-                    r.onload = function(e) {
-                        currentPhotoPreview = e.target.result;
-                        document.getElementById('previewContainer').innerHTML = '<img src="' + currentPhotoPreview + '" class="preview-image">';
-                    };
-                    r.readAsDataURL(file);
-                }
+                try { const resizedBase64 = await resizeImage(file, 400, 400, 0.8); currentPhotoPreview = resizedBase64; document.getElementById('previewContainer').innerHTML = '<img src="' + currentPhotoPreview + '" class="preview-image">'; }
+                catch (error) { const r = new FileReader(); r.onload = function(e) { currentPhotoPreview = e.target.result; document.getElementById('previewContainer').innerHTML = '<img src="' + currentPhotoPreview + '" class="preview-image">'; }; r.readAsDataURL(file); }
             }
         }
-
-        function addBarbeiro() {
-            const name = document.getElementById('barbeiroName').value.trim();
-            if (!name) { showToast('Atenção', 'Digite o nome.'); return; }
-            if (!currentPhotoPreview) { showToast('Atenção', 'Selecione uma foto.'); return; }
-            addBarbeiroAPI(name, currentPhotoPreview);
-            document.getElementById('barbeiroName').value = '';
-            document.getElementById('previewContainer').innerHTML = '';
-            currentPhotoPreview = null;
-            document.getElementById('barbeiroPhoto').value = '';
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        function addBarbeiro() { const name = document.getElementById('barbeiroName').value.trim(); if (!name) { showToast('Atenção', 'Digite o nome.'); return; } if (!currentPhotoPreview) { showToast('Atenção', 'Selecione uma foto.'); return; } addBarbeiroAPI(name, currentPhotoPreview); document.getElementById('barbeiroName').value = ''; document.getElementById('previewContainer').innerHTML = ''; currentPhotoPreview = null; document.getElementById('barbeiroPhoto').value = ''; }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
         // ========== SERVIÇOS ==========
         const DEFAULT_SERVICES = [{name:'Cabelo',price:40,duration:45,id:'cabelo'},{name:'Barba',price:40,duration:30,id:'barba'},{name:'Cabelo e Barba',price:80,duration:75,id:'combo'},{name:'Pacote Trenches',price:125,duration:90,id:'pacote'}];
-        
-        function getServices() {
-            if (window._tempServices && window._tempServices.length > 0) return window._tempServices;
-            return [...DEFAULT_SERVICES];
-        }
-
-        async function saveServices() {
-            const services = getServices();
-            for (const x of services) {
-                if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; }
-                if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; }
-                if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; }
-            }
-            const success = await saveSettings({ services: services });
-            if (success) {
-                showToast('Serviços Atualizados', 'Serviços e preços salvos globalmente.');
-            }
-        }
-
-        function renderServices() {
-            const c = document.getElementById('servicesContainer');
-            if (!c) return;
-            const sv = getServices();
-            c.innerHTML = sv.map((s, i) => `
-                <div class="service-dynamic-item">
-                    <div class="field-name"><input type="text" value="${escapeHtml(s.name)}" onchange="updateServiceField(${i},'name',this.value)"></div>
-                    <div class="field-price"><input type="number" value="${s.price}" step="5" onchange="updateServiceField(${i},'price',parseInt(this.value)||0)"></div>
-                    <div class="field-duration"><input type="number" value="${s.duration}" step="5" onchange="updateServiceField(${i},'duration',parseInt(this.value)||0)"></div>
-                    <div class="field-action"><button class="btn-remove-service" onclick="removeService(${i})"><i class="fas fa-trash"></i></button></div>
-                </div>
-            `).join('');
-        }
-
-        function updateServiceField(i, f, v) {
-            const s = getServices();
-            if (i >= 0 && i < s.length) {
-                s[i][f] = v;
-                window._tempServices = s;
-            }
-        }
-
-        function addNewService() {
-            const s = getServices();
-            s.push({ name: 'Novo Serviço', price: 50, duration: 30, id: 'svc_' + Date.now() });
-            window._tempServices = s;
-            renderServices();
-        }
-
-        function removeService(i) {
-            const s = getServices();
-            if (s.length <= 1) { showToast('Atenção', 'Mantenha pelo menos um serviço.'); return; }
-            s.splice(i, 1);
-            window._tempServices = s;
-            renderServices();
-            showToast('Serviço Removido', 'Removido da lista.');
-        }
+        function getServices() { if (window._tempServices && window._tempServices.length > 0) return window._tempServices; return [...DEFAULT_SERVICES]; }
+        async function saveServices() { const services = getServices(); for (const x of services) { if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; } if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; } if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; } } const success = await saveSettings({ services: services }); if (success) { showToast('Serviços Atualizados', 'Serviços e preços salvos globalmente.'); } }
+        function renderServices() { const c = document.getElementById('servicesContainer'); if (!c) return; const sv = getServices(); c.innerHTML = sv.map((s, i) => `<div class="service-dynamic-item"><div class="field-name"><input type="text" value="${escapeHtml(s.name)}" onchange="updateServiceField(${i},'name',this.value)"></div><div class="field-price"><input type="number" value="${s.price}" step="5" onchange="updateServiceField(${i},'price',parseInt(this.value)||0)"></div><div class="field-duration"><input type="number" value="${s.duration}" step="5" onchange="updateServiceField(${i},'duration',parseInt(this.value)||0)"></div><div class="field-action"><button class="btn-remove-service" onclick="removeService(${i})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
+        function updateServiceField(i, f, v) { const s = getServices(); if (i >= 0 && i < s.length) { s[i][f] = v; window._tempServices = s; } }
+        function addNewService() { const s = getServices(); s.push({ name: 'Novo Serviço', price: 50, duration: 30, id: 'svc_' + Date.now() }); window._tempServices = s; renderServices(); }
+        function removeService(i) { const s = getServices(); if (s.length <= 1) { showToast('Atenção', 'Mantenha pelo menos um serviço.'); return; } s.splice(i, 1); window._tempServices = s; renderServices(); showToast('Serviço Removido', 'Removido da lista.'); }
 
         // ========== HORÁRIOS ==========
-        async function saveHours() {
-            const hours = {
-                mon: document.getElementById('hourMon').value,
-                tue: document.getElementById('hourTue').value,
-                wed: document.getElementById('hourWed').value,
-                thu: document.getElementById('hourThu').value,
-                fri: document.getElementById('hourFri').value,
-                sat: document.getElementById('hourSat').value
-            };
-            const success = await saveSettings({ hours: hours });
-            if (success) {
-                showToast('Horários Atualizados', 'Horários salvos globalmente.');
-            }
-        }
+        async function saveHours() { const hours = { mon: document.getElementById('hourMon').value, tue: document.getElementById('hourTue').value, wed: document.getElementById('hourWed').value, thu: document.getElementById('hourThu').value, fri: document.getElementById('hourFri').value, sat: document.getElementById('hourSat').value }; const success = await saveSettings({ hours: hours }); if (success) { showToast('Horários Atualizados', 'Horários salvos globalmente.'); } }
 
         // ========== DATAS BLOQUEADAS ==========
         let blockedDates = [];
-
-        function renderBlockedDates(dates) {
-            blockedDates = dates || [];
-            const c = document.getElementById('blockedDatesTags');
-            if (!c) return;
-            if (blockedDates.length === 0) {
-                c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>';
-                return;
-            }
-            c.innerHTML = blockedDates.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join('');
-        }
-
-        async function addBlockedDate() {
-            const input = document.getElementById('blockedDateInput');
-            const date = input.value;
-            if (!date) { showToast('Atenção', 'Selecione uma data.'); return; }
-            if (blockedDates.includes(date)) { showToast('Atenção', 'Data já bloqueada.'); return; }
-            const newDates = [...blockedDates, date].sort();
-            const success = await saveSettings({ blockedDates: newDates });
-            if (success) {
-                blockedDates = newDates;
-                renderBlockedDates(blockedDates);
-                input.value = '';
-                showToast('Sucesso', 'Data bloqueada globalmente!');
-            }
-        }
-
-        async function removeBlockedDate(date) {
-            const newDates = blockedDates.filter(x => x !== date);
-            const success = await saveSettings({ blockedDates: newDates });
-            if (success) {
-                blockedDates = newDates;
-                renderBlockedDates(blockedDates);
-                showToast('Sucesso', 'Data desbloqueada!');
-            }
-        }
+        function renderBlockedDates(dates) { blockedDates = dates || []; const c = document.getElementById('blockedDatesTags'); if (!c) return; if (blockedDates.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>'; return; } c.innerHTML = blockedDates.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join(''); }
+        async function addBlockedDate() { const input = document.getElementById('blockedDateInput'); const date = input.value; if (!date) { showToast('Atenção', 'Selecione uma data.'); return; } if (blockedDates.includes(date)) { showToast('Atenção', 'Data já bloqueada.'); return; } const newDates = [...blockedDates, date].sort(); const success = await saveSettings({ blockedDates: newDates }); if (success) { blockedDates = newDates; renderBlockedDates(blockedDates); input.value = ''; showToast('Sucesso', 'Data bloqueada globalmente!'); } }
+        async function removeBlockedDate(date) { const newDates = blockedDates.filter(x => x !== date); const success = await saveSettings({ blockedDates: newDates }); if (success) { blockedDates = newDates; renderBlockedDates(blockedDates); showToast('Sucesso', 'Data desbloqueada!'); } }
 
         // ========== CONTATO ==========
-        async function saveContact() {
-            const contact = {
-                phone: document.getElementById('adminPhone').value,
-                instagram: document.getElementById('adminInstagram').value,
-                address: document.getElementById('adminAddress').value
-            };
-            const success = await saveSettings(contact);
-            if (success) {
-                showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos globalmente.');
-            }
-        }
+        async function saveContact() { const contact = { phone: document.getElementById('adminPhone').value, instagram: document.getElementById('adminInstagram').value, address: document.getElementById('adminAddress').value }; const success = await saveSettings(contact); if (success) { showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos globalmente.'); } }
 
         // ========== RESERVAS ==========
-        async function loadAllBookings() {
-            const c = document.getElementById('bookingsList');
-            c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>';
-            try {
-                const r = await fetch(API_URL + '/api/bookings/all');
-                if (r.ok) {
-                    allBookings = await r.json();
-                    displayBookings(allBookings);
-                    document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas';
-                    calculateRevenue(allBookings);
-                }
-            } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
-        }
-
-        async function loadTodaysBookings() {
-            const c = document.getElementById('bookingsList');
-            c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>';
-            try {
-                const r = await fetch(API_URL + '/api/bookings/all');
-                if (r.ok) {
-                    const b = await r.json();
-                    const today = new Date().toISOString().split('T')[0];
-                    const filtered = b.filter(x => x.date === today);
-                    displayBookings(filtered);
-                    document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')';
-                    calculateRevenue(filtered);
-                }
-            } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; }
-        }
-
-        function filterBookings() {
-            const m = document.getElementById('filterMonth').value;
-            const y = document.getElementById('filterYear').value;
-            const dayFilter = document.getElementById('filterDay').value;
-            
-            let filtered = [...allBookings];
-            
-            // Filtrar por dia específico (prioridade)
-            if (dayFilter) {
-                filtered = filtered.filter(b => b.date === dayFilter);
-                const formattedDate = dayFilter.split('-').reverse().join('/');
-                document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`;
-            }
-            // Senão filtrar por mês e ano
-            else if (m && y) {
-                filtered = filtered.filter(b => {
-                    const [by, bm] = b.date.split('-');
-                    return by === y && bm === m;
-                });
-                const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y;
-            }
-            else {
-                showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).');
-                return;
-            }
-            
-            displayBookings(filtered);
-            calculateRevenue(filtered);
-        }
-        
-        function clearFilters() {
-            document.getElementById('filterMonth').value = '';
-            document.getElementById('filterYear').value = '2026';
-            document.getElementById('filterDay').value = '';
-            loadAllBookings();
-        }
-
-        function displayBookings(b) {
-            const c = document.getElementById('bookingsList'), ce = document.getElementById('reservasCount');
-            if (!c) return;
-            if (b.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>'; ce.textContent = '0 reservas'; return; }
-            b.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-            ce.textContent = b.length + ' reserva' + (b.length !== 1 ? 's' : '');
-            c.innerHTML = b.map(x => `
-                <div class="booking-item">
-                    <strong><i class="far fa-calendar-alt"></i> ${x.date.split('-').reverse().join('/')}</strong> - <strong><i class="far fa-clock"></i> ${x.time}</strong><br>
-                    <i class="fas fa-user"></i> Cliente: ${escapeHtml(x.userName)}<br>
-                    <i class="fas fa-cut"></i> Serviço: ${escapeHtml(x.service)}<br>
-                    <i class="fas fa-phone"></i> <small>${x.userId || 'N/E'}</small><br>
-                    <button class="btn-delete-booking" onclick="openDeleteBookingModal('${x._id}', '${x.date}', '${x.time}', '${escapeHtml(x.userName)}', '${escapeHtml(x.service)}')">
-                        <i class="fas fa-trash"></i> CANCELAR RESERVA
-                    </button>
-                </div>
-            `).join('');
-        }
-
+        async function loadAllBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { allBookings = await r.json(); displayBookings(allBookings); document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas'; calculateRevenue(allBookings); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
+        async function loadTodaysBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { const b = await r.json(); const today = new Date().toISOString().split('T')[0]; const filtered = b.filter(x => x.date === today); displayBookings(filtered); document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')'; calculateRevenue(filtered); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
+        function filterBookings() { const m = document.getElementById('filterMonth').value; const y = document.getElementById('filterYear').value; const dayFilter = document.getElementById('filterDay').value; let filtered = [...allBookings]; if (dayFilter) { filtered = filtered.filter(b => b.date === dayFilter); const formattedDate = dayFilter.split('-').reverse().join('/'); document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`; } else if (m && y) { filtered = filtered.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; }); const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']; document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y; } else { showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).'); return; } displayBookings(filtered); calculateRevenue(filtered); }
+        function clearFilters() { document.getElementById('filterMonth').value = ''; document.getElementById('filterYear').value = '2026'; document.getElementById('filterDay').value = ''; loadAllBookings(); }
+        function displayBookings(b) { const c = document.getElementById('bookingsList'), ce = document.getElementById('reservasCount'); if (!c) return; if (b.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>'; ce.textContent = '0 reservas'; return; } b.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)); ce.textContent = b.length + ' reserva' + (b.length !== 1 ? 's' : ''); c.innerHTML = b.map(x => `<div class="booking-item"><strong><i class="far fa-calendar-alt"></i> ${x.date.split('-').reverse().join('/')}</strong> - <strong><i class="far fa-clock"></i> ${x.time}</strong><br><i class="fas fa-user"></i> Cliente: ${escapeHtml(x.userName)}<br><i class="fas fa-cut"></i> Serviço: ${escapeHtml(x.service)}<br><i class="fas fa-phone"></i> <small>${x.userId || 'N/E'}</small><br><button class="btn-delete-booking" onclick="openDeleteBookingModal('${x._id}', '${x.date}', '${x.time}', '${escapeHtml(x.userName)}', '${escapeHtml(x.service)}')"><i class="fas fa-trash"></i> CANCELAR RESERVA</button></div>`).join(''); }
         function logout() { window.location.href = 'index.html'; }
 
         async function init() {
@@ -1173,9 +1052,28 @@ Mogi das Cruzes - SP</textarea></div>
             console.log('📡 Backend URL:', API_URL);
             await loadSettings();
             await loadBarbeiros();
+            await loadInspirationStatus();
             renderServices();
             await loadTodaysBookings();
             console.log('✅ Painel Gestor pronto!');
+            
+            // ===== VERIFICAR SE É USUÁRIO MESTRE (DESENVOLVEDOR) =====
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const isMaster = currentUser.phone === '11988568185';
+            
+            const registerBtn = document.getElementById('registerPaymentBtn');
+            if (registerBtn) {
+                if (isMaster) {
+                    registerBtn.style.display = 'block';
+                    registerBtn.addEventListener('click', registerPayment);
+                    console.log('🔑 Modo Desenvolvedor ativado - Botão de pagamento visível');
+                } else {
+                    registerBtn.style.display = 'none';
+                    console.log('👤 Modo Gestor - Botão de pagamento oculto');
+                }
+            }
+            
+            setInterval(loadInspirationStatus, 60000);
         }
         init();
     </script>
