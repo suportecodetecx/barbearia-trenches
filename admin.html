@@ -300,6 +300,97 @@
         .reservas-header h3 { color: var(--blue-light); font-size: 16px; }
         .reservas-header .badge { background: rgba(192, 214, 239, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
 
+        /* MODAL DE CONFIRMAÇÃO DE PAGAMENTO ESTILIZADO */
+        .key-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        .key-modal-overlay.show { display: flex; }
+        .key-modal-box {
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid var(--blue-primary);
+            border-radius: 20px;
+            padding: 30px 25px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            animation: fadeInUp 0.3s ease;
+        }
+        .key-modal-icon {
+            font-size: 60px;
+            color: #ffaa00;
+            margin-bottom: 15px;
+        }
+        .key-modal-title {
+            color: var(--blue-light);
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .key-modal-subtitle {
+            color: var(--silver-soft);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .key-modal-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--blue-steel);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+        .key-modal-input:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 15px rgba(192, 214, 239, 0.3);
+        }
+        .key-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .key-modal-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+            border: none;
+        }
+        .key-modal-btn.confirm {
+            background: linear-gradient(135deg, #00cc44, #009933);
+            color: #fff;
+        }
+        .key-modal-btn.confirm:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px #00ff44;
+        }
+        .key-modal-btn.cancel {
+            background: transparent;
+            border: 1px solid var(--blue-steel);
+            color: var(--silver-main);
+        }
+        .key-modal-btn.cancel:hover {
+            border-color: var(--blue-primary);
+            color: var(--blue-primary);
+        }
+        .key-error-message {
+            color: #ff6666;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
         .toast-overlay, .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;
@@ -360,6 +451,8 @@
             .timer-block { padding: 5px 10px; min-width: 55px; }
             .timer-number { font-size: 22px; }
             .timer-label { font-size: 8px; }
+            .key-modal-box { padding: 20px; }
+            .key-modal-title { font-size: 18px; }
         }
     </style>
 </head>
@@ -370,6 +463,25 @@
             <div class="toast-title" id="toastTitle">Sucesso!</div>
             <div class="toast-text" id="toastText"></div>
             <button class="toast-btn btn-confirm" onclick="closeToast()">OK</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE PAGAMENTO ESTILIZADO -->
+    <div class="key-modal-overlay" id="paymentKeyModal">
+        <div class="key-modal-box">
+            <div class="key-modal-icon">
+                <i class="fas fa-key"></i>
+            </div>
+            <div class="key-modal-title">🔐 CHAVE DE ADMINISTRADOR</div>
+            <div class="key-modal-subtitle">Digite a chave secreta para registrar o pagamento</div>
+            <input type="password" id="paymentKeyInput" class="key-modal-input" placeholder="••••••••••••••" autocomplete="off">
+            <div class="key-error-message" id="keyErrorMessage">
+                <i class="fas fa-exclamation-triangle"></i> Chave inválida!
+            </div>
+            <div class="key-modal-buttons">
+                <button class="key-modal-btn cancel" id="cancelPaymentBtn">CANCELAR</button>
+                <button class="key-modal-btn confirm" id="confirmPaymentBtn">CONFIRMAR</button>
+            </div>
         </div>
     </div>
 
@@ -561,6 +673,7 @@ Mogi das Cruzes - SP</textarea></div>
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
         let countdownInterval = null;
+        let pendingPaymentCallback = null;
 
         // ========== FUNÇÃO PARA ATUALIZAR TIMER ==========
         function updateCountdown(targetDate, statusType) {
@@ -588,6 +701,53 @@ Mogi das Cruzes - SP</textarea></div>
             if (timerSegundos) timerSegundos.textContent = String(seconds).padStart(2, '0');
         }
 
+        // ========== FUNÇÃO PARA REGISTRAR PAGAMENTO COM MODAL ESTILIZADO ==========
+        function openPaymentModal() {
+            // Limpar campos
+            document.getElementById('paymentKeyInput').value = '';
+            document.getElementById('keyErrorMessage').style.display = 'none';
+            document.getElementById('paymentKeyModal').classList.add('show');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentKeyModal').classList.remove('show');
+        }
+
+        async function processPayment() {
+            const adminKey = document.getElementById('paymentKeyInput').value.trim();
+            
+            if (!adminKey) {
+                document.getElementById('keyErrorMessage').style.display = 'block';
+                document.getElementById('keyErrorMessage').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Digite a chave de administrador!';
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_URL + '/api/register-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminKey: adminKey })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closePaymentModal();
+                    showToast('✅ Pagamento Registrado', 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.');
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    await loadInspirationStatus();
+                    setTimeout(() => { window.location.reload(); }, 2000);
+                } else {
+                    document.getElementById('keyErrorMessage').style.display = 'block';
+                    document.getElementById('keyErrorMessage').innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + (result.error || 'Chave inválida! Contate o suporte.');
+                }
+            } catch (error) {
+                console.error('Erro ao registrar pagamento:', error);
+                document.getElementById('keyErrorMessage').style.display = 'block';
+                document.getElementById('keyErrorMessage').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro de conexão ao registrar pagamento';
+            }
+        }
+
         // ========== FUNÇÃO PARA CARREGAR STATUS DO SITE (INSPIRAÇÃO) ==========
         async function loadInspirationStatus() {
             try {
@@ -597,7 +757,6 @@ Mogi das Cruzes - SP</textarea></div>
                     const container = document.getElementById('inspirationStatusContent');
                     const today = new Date();
                     
-                    // CORREÇÃO DE FUSO HORÁRIO: Adicionar 3 horas para horário Brasil
                     let nextDue = new Date(status.nextDueDate);
                     nextDue = new Date(nextDue.getTime() + (3 * 60 * 60 * 1000));
                     
@@ -606,7 +765,6 @@ Mogi das Cruzes - SP</textarea></div>
                     if (countdownInterval) clearInterval(countdownInterval);
                     
                     if (status.isValid && daysLeft > 0) {
-                        // SITE ATIVO - VERDE
                         container.innerHTML = `
                             <div class="inspiration-status ativo">
                                 <div class="inspiration-icon"><i class="fas fa-check-circle" style="color: #00ff00;"></i></div>
@@ -635,7 +793,6 @@ Mogi das Cruzes - SP</textarea></div>
                         document.getElementById('inspirationCard').style.border = '3px solid #00ff00';
                         document.getElementById('inspirationCard').style.animation = 'none';
                         
-                        // Iniciar timer
                         updateCountdown(nextDue, 'ativo');
                         countdownInterval = setInterval(() => updateCountdown(nextDue, 'ativo'), 1000);
                     } 
@@ -677,7 +834,6 @@ Mogi das Cruzes - SP</textarea></div>
                         }
                     } 
                     else {
-                        // SITE BLOQUEADO
                         container.innerHTML = `
                             <div class="inspiration-status vencido">
                                 <div class="inspiration-icon"><i class="fas fa-skull-crossbones" style="color: #ff0000;"></i></div>
@@ -725,32 +881,9 @@ Mogi das Cruzes - SP</textarea></div>
             }
         }
 
-        // ========== FUNÇÃO PARA REGISTRAR PAGAMENTO ==========
+        // ========== FUNÇÃO PARA REGISTRAR PAGAMENTO (LEGADO - MANTIDA PARA COMPATIBILIDADE) ==========
         async function registerPayment() {
-            const adminKey = prompt('🔑 Digite a chave de administrador para registrar o pagamento:');
-            if (!adminKey) return;
-            
-            try {
-                const response = await fetch(API_URL + '/api/register-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ adminKey: adminKey })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showToast('✅ Pagamento Registrado', 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.');
-                    if (countdownInterval) clearInterval(countdownInterval);
-                    await loadInspirationStatus();
-                    setTimeout(() => { window.location.reload(); }, 2000);
-                } else {
-                    showToast('❌ Erro', result.error || 'Chave inválida! Contate o suporte.');
-                }
-            } catch (error) {
-                console.error('Erro ao registrar pagamento:', error);
-                showToast('❌ Erro', 'Erro de conexão ao registrar pagamento');
-            }
+            openPaymentModal();
         }
 
         // ========== FUNÇÃO PARA CALCULAR FATURAMENTO ==========
@@ -889,7 +1022,6 @@ Mogi das Cruzes - SP</textarea></div>
         document.getElementById('confirmDeleteBookingBtn').onclick = async function() { if (deleteBookingData) { await deleteBooking(deleteBookingData.id, deleteBookingData.date, deleteBookingData.time, deleteBookingData.userName); deleteBookingData = null; closeDeleteBookingModal(); } };
         document.getElementById('deleteBookingModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteBookingModal(); });
 
-        // ========== CONFIGURAÇÕES GLOBAIS ==========
         async function loadSettings() {
             try {
                 const response = await fetch(API_URL + '/api/settings');
@@ -942,7 +1074,6 @@ Mogi das Cruzes - SP</textarea></div>
             }
         }
 
-        // ========== BARBEIROS ==========
         async function loadBarbeiros() {
             try {
                 const response = await fetch(API_URL + '/api/barbers');
@@ -1018,7 +1149,6 @@ Mogi das Cruzes - SP</textarea></div>
         function addBarbeiro() { const name = document.getElementById('barbeiroName').value.trim(); if (!name) { showToast('Atenção', 'Digite o nome.'); return; } if (!currentPhotoPreview) { showToast('Atenção', 'Selecione uma foto.'); return; } addBarbeiroAPI(name, currentPhotoPreview); document.getElementById('barbeiroName').value = ''; document.getElementById('previewContainer').innerHTML = ''; currentPhotoPreview = null; document.getElementById('barbeiroPhoto').value = ''; }
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
-        // ========== SERVIÇOS ==========
         const DEFAULT_SERVICES = [{name:'Cabelo',price:40,duration:45,id:'cabelo'},{name:'Barba',price:40,duration:30,id:'barba'},{name:'Cabelo e Barba',price:80,duration:75,id:'combo'},{name:'Pacote Trenches',price:125,duration:90,id:'pacote'}];
         function getServices() { if (window._tempServices && window._tempServices.length > 0) return window._tempServices; return [...DEFAULT_SERVICES]; }
         async function saveServices() { const services = getServices(); for (const x of services) { if (!x.name || x.name.trim() === '') { showToast('Atenção', 'Nome obrigatório.'); return; } if (!x.price || x.price <= 0) { showToast('Atenção', 'Preço inválido.'); return; } if (!x.duration || x.duration <= 0) { showToast('Atenção', 'Duração inválida.'); return; } } const success = await saveSettings({ services: services }); if (success) { showToast('Serviços Atualizados', 'Serviços e preços salvos globalmente.'); } }
@@ -1027,19 +1157,15 @@ Mogi das Cruzes - SP</textarea></div>
         function addNewService() { const s = getServices(); s.push({ name: 'Novo Serviço', price: 50, duration: 30, id: 'svc_' + Date.now() }); window._tempServices = s; renderServices(); }
         function removeService(i) { const s = getServices(); if (s.length <= 1) { showToast('Atenção', 'Mantenha pelo menos um serviço.'); return; } s.splice(i, 1); window._tempServices = s; renderServices(); showToast('Serviço Removido', 'Removido da lista.'); }
 
-        // ========== HORÁRIOS ==========
         async function saveHours() { const hours = { mon: document.getElementById('hourMon').value, tue: document.getElementById('hourTue').value, wed: document.getElementById('hourWed').value, thu: document.getElementById('hourThu').value, fri: document.getElementById('hourFri').value, sat: document.getElementById('hourSat').value }; const success = await saveSettings({ hours: hours }); if (success) { showToast('Horários Atualizados', 'Horários salvos globalmente.'); } }
 
-        // ========== DATAS BLOQUEADAS ==========
         let blockedDates = [];
         function renderBlockedDates(dates) { blockedDates = dates || []; const c = document.getElementById('blockedDatesTags'); if (!c) return; if (blockedDates.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);font-size:11px;margin-top:8px;">Nenhuma data bloqueada</p>'; return; } c.innerHTML = blockedDates.map(x => `<span class="tag"><i class="fas fa-calendar-times"></i> ${x.split('-').reverse().join('/')}<span class="remove-tag" onclick="removeBlockedDate('${x}')">&times;</span></span>`).join(''); }
         async function addBlockedDate() { const input = document.getElementById('blockedDateInput'); const date = input.value; if (!date) { showToast('Atenção', 'Selecione uma data.'); return; } if (blockedDates.includes(date)) { showToast('Atenção', 'Data já bloqueada.'); return; } const newDates = [...blockedDates, date].sort(); const success = await saveSettings({ blockedDates: newDates }); if (success) { blockedDates = newDates; renderBlockedDates(blockedDates); input.value = ''; showToast('Sucesso', 'Data bloqueada globalmente!'); } }
         async function removeBlockedDate(date) { const newDates = blockedDates.filter(x => x !== date); const success = await saveSettings({ blockedDates: newDates }); if (success) { blockedDates = newDates; renderBlockedDates(blockedDates); showToast('Sucesso', 'Data desbloqueada!'); } }
 
-        // ========== CONTATO ==========
         async function saveContact() { const contact = { phone: document.getElementById('adminPhone').value, instagram: document.getElementById('adminInstagram').value, address: document.getElementById('adminAddress').value }; const success = await saveSettings(contact); if (success) { showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos globalmente.'); } }
 
-        // ========== RESERVAS ==========
         async function loadAllBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { allBookings = await r.json(); displayBookings(allBookings); document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas'; calculateRevenue(allBookings); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
         async function loadTodaysBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { const b = await r.json(); const today = new Date().toISOString().split('T')[0]; const filtered = b.filter(x => x.date === today); displayBookings(filtered); document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')'; calculateRevenue(filtered); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
         function filterBookings() { const m = document.getElementById('filterMonth').value; const y = document.getElementById('filterYear').value; const dayFilter = document.getElementById('filterDay').value; let filtered = [...allBookings]; if (dayFilter) { filtered = filtered.filter(b => b.date === dayFilter); const formattedDate = dayFilter.split('-').reverse().join('/'); document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`; } else if (m && y) { filtered = filtered.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; }); const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']; document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y; } else { showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).'); return; } displayBookings(filtered); calculateRevenue(filtered); }
@@ -1057,7 +1183,6 @@ Mogi das Cruzes - SP</textarea></div>
             await loadTodaysBookings();
             console.log('✅ Painel Gestor pronto!');
             
-            // ===== VERIFICAR SE É USUÁRIO MESTRE (DESENVOLVEDOR) =====
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             const isMaster = currentUser.phone === '11988568185';
             
@@ -1065,13 +1190,25 @@ Mogi das Cruzes - SP</textarea></div>
             if (registerBtn) {
                 if (isMaster) {
                     registerBtn.style.display = 'block';
-                    registerBtn.addEventListener('click', registerPayment);
+                    registerBtn.addEventListener('click', openPaymentModal);
                     console.log('🔑 Modo Desenvolvedor ativado - Botão de pagamento visível');
                 } else {
                     registerBtn.style.display = 'none';
                     console.log('👤 Modo Gestor - Botão de pagamento oculto');
                 }
             }
+            
+            // Eventos do modal de pagamento
+            document.getElementById('confirmPaymentBtn').addEventListener('click', processPayment);
+            document.getElementById('cancelPaymentBtn').addEventListener('click', closePaymentModal);
+            document.getElementById('paymentKeyInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    processPayment();
+                }
+            });
+            document.getElementById('paymentKeyModal').addEventListener('click', function(e) {
+                if (e.target === this) closePaymentModal();
+            });
             
             setInterval(loadInspirationStatus, 60000);
         }

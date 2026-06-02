@@ -7,6 +7,7 @@ const User = require('./models/User');
 const Booking = require('./models/Booking');
 const Barber = require('./models/Barber');
 const Setting = require('./models/Setting');
+const Payment = require('./models/Payment');  // ← ADICIONE ESTA LINHA
 const path = require('path');
 const fs = require('fs');
 
@@ -24,65 +25,92 @@ const GRACE_DAYS = 5;         // 5 dias de tolerância
 const paymentFile = path.join(__dirname, 'payment-status.json');
 
 // Função para inicializar ou ler status do pagamento
-function getPaymentStatus() {
-    // Usar a data fixa da constante
-    const lastPayment = new Date(LAST_PAYMENT_DATE);
-    // Ajustar para horário Brasil (UTC-3)
-    lastPayment.setHours(0, 0, 0, 0);
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
-    
-    const nextDue = new Date(lastPayment);
-    nextDue.setDate(nextDue.getDate() + PAYMENT_DUE_DAYS);
-    nextDue.setHours(23, 59, 59, 999);
-    
-    const isValid = daysDiff <= PAYMENT_DUE_DAYS;
-    const daysOverdue = daysDiff - PAYMENT_DUE_DAYS;
-    const graceDaysLeft = Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS));
-    const isBlocked = !isValid && daysOverdue >= GRACE_DAYS;
-    
-    console.log(`📅 Status Pagamento:`, {
-        lastPayment: lastPayment.toLocaleDateString('pt-BR'),
-        hoje: today.toLocaleDateString('pt-BR'),
-        daysDiff: daysDiff,
-        isValid: isValid,
-        daysOverdue: daysOverdue,
-        graceDaysLeft: graceDaysLeft,
-        isBlocked: isBlocked
-    });
-    
-    return {
-        isValid: isValid,
-        daysOverdue: daysOverdue,
-        graceDaysLeft: graceDaysLeft,
-        lastPayment: lastPayment,
-        nextDueDate: nextDue
-    };
+async function getPaymentStatus() {
+    try {
+        await ensureConnection();
+        
+        let lastPayment;
+        const paymentDoc = await Payment.findOne();
+        
+        if (paymentDoc && paymentDoc.lastPaymentDate) {
+            lastPayment = new Date(paymentDoc.lastPaymentDate);
+        } else {
+            lastPayment = new Date(LAST_PAYMENT_DATE);
+        }
+        
+        lastPayment.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
+        
+        const nextDue = new Date(lastPayment);
+        nextDue.setDate(nextDue.getDate() + PAYMENT_DUE_DAYS);
+        nextDue.setHours(23, 59, 59, 999);
+        
+        const isValid = daysDiff <= PAYMENT_DUE_DAYS;
+        const daysOverdue = daysDiff - PAYMENT_DUE_DAYS;
+        const graceDaysLeft = Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS));
+        const isBlocked = !isValid && daysOverdue >= GRACE_DAYS;
+        
+        console.log(`📅 Status Pagamento:`, {
+            lastPayment: lastPayment.toLocaleDateString('pt-BR'),
+            hoje: today.toLocaleDateString('pt-BR'),
+            daysDiff: daysDiff,
+            isValid: isValid,
+            daysOverdue: daysOverdue,
+            graceDaysLeft: graceDaysLeft,
+            isBlocked: isBlocked
+        });
+        
+        return {
+            isValid: isValid,
+            daysOverdue: daysOverdue,
+            graceDaysLeft: graceDaysLeft,
+            lastPayment: lastPayment,
+            nextDueDate: nextDue,
+            isBlocked: isBlocked
+        };
+    } catch (error) {
+        console.error('Erro ao buscar status:', error);
+        return {
+            isValid: true,
+            daysOverdue: 0,
+            graceDaysLeft: GRACE_DAYS,
+            lastPayment: new Date(),
+            nextDueDate: new Date(Date.now() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000)),
+            isBlocked: false
+        };
+    }
 }
 // Middleware de bloqueio do site por falta de pagamento
-const paymentBlocker = (req, res, next) => {
+// Middleware de bloqueio do site por falta de pagamento
+const paymentBlocker = async (req, res, next) => {
     // Rotas que NUNCA podem ser bloqueadas
     const publicRoutes = [
-    '/api/verify-payment', 
-    '/api/register-payment', 
-    '/api/payment-status',
-    '/payment-blocked.html',
-    '/api/settings',
-    '/api/barbers',
-    '/admin.html',    // ← ADICIONAR
-    '/admin'          // ← ADICIONAR
-];
+        '/api/verify-payment', 
+        '/api/register-payment', 
+        '/api/payment-status',
+        '/payment-blocked.html',
+        '/api/settings',
+        '/api/barbers',
+        '/api/bookings/all',
+        '/api/bookings',
+        '/api/login',
+        '/api/register',
+        '/admin.html',
+        '/admin'
+    ];
     
+    // SEMPRE liberar rotas de API e rotas públicas
     if (publicRoutes.includes(req.path) || req.path.startsWith('/api/')) {
         return next();
     }
     
-    const paymentStatus = getPaymentStatus();
+    const paymentStatus = await getPaymentStatus();
     
-    // Se NÃO está válido E passou dos dias de tolerância → BLOQUEIO TOTAL
+    // Só bloqueia se NÃO for API e estiver bloqueado
     if (!paymentStatus.isValid && paymentStatus.daysOverdue >= GRACE_DAYS) {
         return res.send(`
             <!DOCTYPE html>
@@ -173,8 +201,8 @@ const paymentBlocker = (req, res, next) => {
 app.use(paymentBlocker);
 
 // ========== API PARA VERIFICAR STATUS DO PAGAMENTO ==========
-app.get('/api/payment-status', (req, res) => {
-    const status = getPaymentStatus();
+app.get('/api/payment-status', async (req, res) => {
+    const status = await getPaymentStatus();
     res.json({
         success: true,
         isValid: status.isValid,
@@ -188,42 +216,64 @@ app.get('/api/payment-status', (req, res) => {
 
 // ========== API PARA REGISTRAR PAGAMENTO (ADMIN) ==========
 app.post('/api/register-payment', async (req, res) => {
-    const { adminKey, paymentDate } = req.body;
-    
-    // CHAVE SECRETA - MUDE PARA O QUE VOCÊ QUISER!
-    const SECRET_KEY = 'TRENCHES2026@#$';
-    
-    if (adminKey !== SECRET_KEY) {
-        return res.status(403).json({ error: 'Chave de administrador inválida' });
+    try {
+        const { adminKey, paymentDate } = req.body;
+        
+        // CHAVE SECRETA
+        const SECRET_KEY = 'code@@';
+        
+        if (adminKey !== SECRET_KEY) {
+            return res.status(403).json({ error: 'Chave de administrador inválida' });
+        }
+        
+        // Conectar ao banco
+        await ensureConnection();
+        
+        // Buscar ou criar documento de pagamento
+        let paymentDoc = await Payment.findOne();
+        
+        const newPaymentDate = paymentDate ? new Date(paymentDate) : new Date();
+        
+        if (paymentDoc) {
+            // Atualizar documento existente
+            paymentDoc.lastPaymentDate = newPaymentDate;
+            paymentDoc.lastUpdate = new Date();
+            paymentDoc.registeredBy = 'admin';
+            await paymentDoc.save();
+        } else {
+            // Criar novo documento
+            paymentDoc = new Payment({
+                lastPaymentDate: newPaymentDate,
+                lastUpdate: new Date(),
+                registeredBy: 'admin'
+            });
+            await paymentDoc.save();
+        }
+        
+        console.log('✅ Pagamento registrado em:', newPaymentDate);
+        
+        // Atualizar a constante LAST_PAYMENT_DATE para o novo valor
+        // (opcional: para usar em memória)
+        
+        res.json({ 
+            success: true, 
+            message: 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.',
+            nextDueDate: new Date(newPaymentDate.getTime() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000))
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao registrar pagamento:', error);
+        res.status(500).json({ error: 'Erro interno ao registrar pagamento' });
     }
-    
-    const data = {
-        lastPaymentDate: paymentDate || new Date().toISOString(),
-        lastUpdate: new Date().toISOString(),
-        registeredBy: 'admin'
-    };
-    
-    fs.writeFileSync(paymentFile, JSON.stringify(data, null, 2));
-    
-    const newStatus = getPaymentStatus();
-    console.log('✅ Pagamento registrado em:', data.lastPaymentDate);
-    
-    res.json({ 
-        success: true, 
-        message: 'Pagamento registrado com sucesso! Site reativado por mais 30 dias.',
-        nextDueDate: newStatus.nextDueDate
-    });
 });
 
 // ========== SERVIDOR DE ARQUIVOS ESTÁTICOS ==========
 app.use(express.static(path.join(__dirname, '..')));
 
-app.get('/', (req, res) => {
-    // Verificar se precisa mostrar aviso de vencimento próximo
-    const paymentStatus = getPaymentStatus();
+app.get('/', async (req, res) => {
+    const paymentStatus = await getPaymentStatus();
     
     if (!paymentStatus.isValid && paymentStatus.graceDaysLeft > 0 && paymentStatus.graceDaysLeft <= 5) {
-        // Ainda pode acessar, mas vamos passar uma flag
         res.sendFile(path.join(__dirname, '..', 'index.html'));
     } else {
         res.sendFile(path.join(__dirname, '..', 'index.html'));
