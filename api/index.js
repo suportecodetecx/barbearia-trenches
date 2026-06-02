@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ========== SISTEMA DE VALIDAÇÃO DE PAGAMENTO ==========
-const LAST_PAYMENT_DATE = '2026-06-10T00:00:00.000Z'; // 10 de JUNHO ✅
+const LAST_PAYMENT_DATE = '2026-05-10T00:00:00.000Z'; // Pagamento 10/05 → Vence 10/06 
 const PAYMENT_DUE_DAYS = 30;  // Vence em 30 dias
 const GRACE_DAYS = 5;         // 5 dias de tolerância
 
@@ -25,57 +25,56 @@ const paymentFile = path.join(__dirname, 'payment-status.json');
 
 // Função para inicializar ou ler status do pagamento
 function getPaymentStatus() {
-    try {
-        if (fs.existsSync(paymentFile)) {
-            const data = JSON.parse(fs.readFileSync(paymentFile, 'utf8'));
-            const lastPayment = new Date(data.lastPaymentDate);
-            const today = new Date();
-            const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
-            
-            return {
-                isValid: daysDiff <= PAYMENT_DUE_DAYS,
-                daysOverdue: daysDiff - PAYMENT_DUE_DAYS,
-                graceDaysLeft: Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS)),
-                lastPayment: lastPayment,
-                nextDueDate: new Date(lastPayment.getTime() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000))
-            };
-        }
-    } catch (e) {
-        console.error('Erro ao ler status de pagamento:', e);
-    }
-    
-    // Criar arquivo padrão com a data 09/06/2026
-    const defaultData = {
-        lastPaymentDate: LAST_PAYMENT_DATE,
-        lastUpdate: new Date().toISOString(),
-        createdAt: LAST_PAYMENT_DATE
-    };
-    fs.writeFileSync(paymentFile, JSON.stringify(defaultData, null, 2));
-    
+    // Usar a data fixa da constante
     const lastPayment = new Date(LAST_PAYMENT_DATE);
+    // Ajustar para horário Brasil (UTC-3)
+    lastPayment.setHours(0, 0, 0, 0);
+    
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
     
+    const nextDue = new Date(lastPayment);
+    nextDue.setDate(nextDue.getDate() + PAYMENT_DUE_DAYS);
+    nextDue.setHours(23, 59, 59, 999);
+    
+    const isValid = daysDiff <= PAYMENT_DUE_DAYS;
+    const daysOverdue = daysDiff - PAYMENT_DUE_DAYS;
+    const graceDaysLeft = Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS));
+    const isBlocked = !isValid && daysOverdue >= GRACE_DAYS;
+    
+    console.log(`📅 Status Pagamento:`, {
+        lastPayment: lastPayment.toLocaleDateString('pt-BR'),
+        hoje: today.toLocaleDateString('pt-BR'),
+        daysDiff: daysDiff,
+        isValid: isValid,
+        daysOverdue: daysOverdue,
+        graceDaysLeft: graceDaysLeft,
+        isBlocked: isBlocked
+    });
+    
     return {
-        isValid: daysDiff <= PAYMENT_DUE_DAYS,
-        daysOverdue: daysDiff - PAYMENT_DUE_DAYS,
-        graceDaysLeft: Math.max(0, GRACE_DAYS - (daysDiff - PAYMENT_DUE_DAYS)),
+        isValid: isValid,
+        daysOverdue: daysOverdue,
+        graceDaysLeft: graceDaysLeft,
         lastPayment: lastPayment,
-        nextDueDate: new Date(lastPayment.getTime() + (PAYMENT_DUE_DAYS * 24 * 60 * 60 * 1000))
+        nextDueDate: nextDue
     };
 }
-
 // Middleware de bloqueio do site por falta de pagamento
 const paymentBlocker = (req, res, next) => {
     // Rotas que NUNCA podem ser bloqueadas
     const publicRoutes = [
-        '/api/verify-payment', 
-        '/api/register-payment', 
-        '/api/payment-status',
-        '/payment-blocked.html',
-        '/api/settings',
-        '/api/barbers'
-    ];
+    '/api/verify-payment', 
+    '/api/register-payment', 
+    '/api/payment-status',
+    '/payment-blocked.html',
+    '/api/settings',
+    '/api/barbers',
+    '/admin.html',    // ← ADICIONAR
+    '/admin'          // ← ADICIONAR
+];
     
     if (publicRoutes.includes(req.path) || req.path.startsWith('/api/')) {
         return next();
@@ -710,7 +709,7 @@ async function createAdminIfNeeded() {
     await ensureConnection();
     await createAdminIfNeeded();
     await createMasterUserIfNeeded();  // <-- ADICIONE ESTA LINHA
-    console.log('💰 Sistema de pagamento ativo | Último pagamento: 10/06/2026');
+    console.log('💰 Sistema de pagamento ativo | Último pagamento: 01/06/2026');
     console.log('📅 Dias de tolerância:', GRACE_DAYS);
 })();
 
