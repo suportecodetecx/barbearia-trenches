@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ========== SISTEMA DE VALIDAÇÃO DE PAGAMENTO ==========
-const LAST_PAYMENT_DATE = '2026-05-10T00:00:00.000Z'; // Pagamento 10/05 → Vence 10/06 
+const LAST_PAYMENT_DATE = '2026-06-02T00:00:00.000Z'; // hoje // Pagamento 10/05 → Vence 10/06 
 const PAYMENT_DUE_DAYS = 30;  // Vence em 30 dias
 const GRACE_DAYS = 5;         // 5 dias de tolerância
 
