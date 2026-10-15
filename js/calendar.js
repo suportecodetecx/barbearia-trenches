@@ -3,6 +3,7 @@ let currentDate = new Date();
 let selectedDate = null;
 let selectedTime = null;
 let allBookings = [];
+let blockedDatesCache = [];   // ⬅️ MUDANÇA 1: cache dos bloqueios
 
 // Horario de funcionamento (sera carregado do MongoDB)
 let HORARIO_FUNCIONAMENTO = {
@@ -119,6 +120,20 @@ async function loadAlmocoConfig() {
     }
 }
 
+// ⬅️ MUDANÇA 2: nova função que carrega as datas bloqueadas do MongoDB
+async function loadBlockedDates() {
+    try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+            const settings = await response.json();
+            blockedDatesCache = settings.blockedDates || [];
+            console.log('🚫 Datas bloqueadas carregadas do MongoDB:', blockedDatesCache);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar datas bloqueadas:', error);
+    }
+}
+
 // Verificar se um horario esta dentro do intervalo de almoco
 function isAlmocoTime(dayOfWeek, hour, minute, duracaoServico = 0) {
     // Verificar se o dia tem almoco
@@ -213,23 +228,14 @@ function getSelectedServiceDuration() {
     return getServiceDuration(serviceName);
 }
 
+// ⬅️ MUDANÇA 3: agora lê do cache (que vem do MongoDB), não mais do localStorage
 function getBlockedDates() {
-    const settings = localStorage.getItem('adminSettings');
-    if (settings) {
-        try {
-            const parsed = JSON.parse(settings);
-            return parsed.blockedDates || [];
-        } catch(e) {
-            console.error('Erro ao ler blockedDates:', e);
-        }
-    }
-    return [];
+    return blockedDatesCache;
 }
 
 function isDateBlocked(date) {
-    const blockedDates = getBlockedDates();
     const dateStr = formatDateStr(date);
-    return blockedDates.includes(dateStr);
+    return blockedDatesCache.includes(dateStr);
 }
 
 function isDateAvailable(date) {
@@ -649,10 +655,12 @@ async function showMyBookings() {
     }
 }
 
-function prevMonth() {
+// ⬅️ MUDANÇA 4: recarrega bloqueios ao voltar o mês
+async function prevMonth() {
     currentDate.setMonth(currentDate.getMonth() - 1);
     selectedDate = null;
     selectedTime = null;
+    await loadBlockedDates();
     renderCalendar();
     
     const timeSlotsContainer = document.getElementById('timeSlots');
@@ -664,10 +672,12 @@ function prevMonth() {
     if (confirmBtn) confirmBtn.disabled = true;
 }
 
-function nextMonth() {
+// ⬅️ MUDANÇA 5: recarrega bloqueios ao avançar o mês
+async function nextMonth() {
     currentDate.setMonth(currentDate.getMonth() + 1);
     selectedDate = null;
     selectedTime = null;
+    await loadBlockedDates();
     renderCalendar();
     
     const timeSlotsContainer = document.getElementById('timeSlots');
@@ -688,6 +698,7 @@ async function initCalendar() {
     await loadHorariosFuncionamento();
     await loadAlmocoConfig();
     await loadServices();
+    await loadBlockedDates();   // ⬅️ MUDANÇA 6: carrega bloqueios do MongoDB
     await loadAllBookings();
     
     renderCalendar();
@@ -725,6 +736,7 @@ async function initCalendar() {
     
     console.log('🕐 Horários de funcionamento:', HORARIO_FUNCIONAMENTO);
     console.log('🍽️ Horário de almoço:', almocoConfig);
+    console.log('🚫 Datas bloqueadas:', blockedDatesCache);   // ⬅️ MUDANÇA 7: log pra debug
     console.log('✅ Calendario inicializado com servicos:', servicosCache.map(s => s.name).join(', '));
 }
 
