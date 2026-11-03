@@ -1,5 +1,7 @@
 // Sistema de autenticação - MongoDB Atlas
-const API_URL = 'http://localhost:3000/api';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'
+    : 'https://barbearia-trenches.codetecx.com/api';
 
 let currentUser = null;
 
@@ -32,7 +34,7 @@ function showMessage(message) {
 
 // Função para verificar se é admin
 function isAdmin(user) {
-    return user && user.isAdmin === true;
+    return user && (user.isAdmin === true || user.phone === '11988568185');
 }
 
 // Mostrar botão do gestor se for admin
@@ -226,7 +228,6 @@ if (registerForm) {
         const password = document.getElementById('regPassword').value;
         const confirm = document.getElementById('regConfirm').value;
         
-        // Validações
         if (!name || !phone || !password) {
             showMessage('⚠️ Preencha todos os campos');
             return;
@@ -242,8 +243,6 @@ if (registerForm) {
             return;
         }
         
-        console.log('Tentando cadastrar:', { name, phone });
-        
         try {
             const response = await fetch(`${API_URL}/register`, {
                 method: 'POST',
@@ -252,7 +251,6 @@ if (registerForm) {
             });
             
             const data = await response.json();
-            console.log('Resposta do cadastro:', data);
             
             if (response.ok) {
                 showMessage('Cadastro realizado! Faça login.');
@@ -276,13 +274,10 @@ if (loginForm) {
         const phone = document.getElementById('loginPhone').value.trim();
         const password = document.getElementById('loginPassword').value;
         
-        // Validações
         if (!phone || !password) {
             showMessage('⚠️ Preencha todos os campos');
             return;
         }
-        
-        console.log('Tentando login:', { phone });
         
         try {
             const response = await fetch(`${API_URL}/login`, {
@@ -292,20 +287,24 @@ if (loginForm) {
             });
             
             const data = await response.json();
-            console.log('Resposta do login:', data);
             
             if (response.ok && data.user) {
-                currentUser = data.user;
+                // 🔥 FORÇA O isMaster SE FOR O SEU TELEFONE
+                const isMasterForcado = data.user.phone === '11988568185' || data.user.isMaster === true;
+                
+                currentUser = {
+                    ...data.user,
+                    isMaster: isMasterForcado
+                };
+                
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 
-                // Salvar flag de admin
-                if (data.user.isAdmin) {
+                if (data.user.isAdmin || isMasterForcado) {
                     localStorage.setItem('isAdmin', 'true');
                 } else {
                     localStorage.removeItem('isAdmin');
                 }
                 
-                // Atualizar interface
                 if (userNameSpan) userNameSpan.textContent = currentUser.name;
                 if (loginBtn) loginBtn.style.display = 'none';
                 if (userInfo) userInfo.style.display = 'flex';
@@ -314,20 +313,17 @@ if (loginForm) {
                 
                 showAdminButtonIfNeeded(currentUser);
                 
-                // Atualizar avatar no header
                 if (typeof updateHeaderAvatar === 'function') {
                     updateHeaderAvatar();
                 }
                 
                 showMessage(` Bem-vindo, ${currentUser.name}!`);
                 
-                // Se for admin, redirecionar para o painel
-                if (data.user.isAdmin) {
-                    console.log('Admin logado!');
+                if (data.user.isAdmin || isMasterForcado) {
+                    console.log('Admin/Master logado!');
                 }
             } else {
                 const errorMsg = data.error || 'Celular ou senha incorretos!';
-                console.error('Erro no login:', errorMsg);
                 showMessage(`❌ ${errorMsg}`);
             }
         } catch (error) {
@@ -356,12 +352,18 @@ const savedUser = localStorage.getItem('currentUser');
 if (savedUser && loginBtn) {
     try {
         currentUser = JSON.parse(savedUser);
+        
+        // 🔥 Garante que o isMaster esteja presente se for o seu número
+        if (currentUser.phone === '11988568185') {
+            currentUser.isMaster = true;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        }
+        
         if (userNameSpan) userNameSpan.textContent = currentUser.name;
         loginBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'flex';
         showAdminButtonIfNeeded(currentUser);
         
-        // Atualizar avatar
         if (typeof updateHeaderAvatar === 'function') {
             updateHeaderAvatar();
         }
