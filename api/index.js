@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// ========== MODELOS (DEFINIDOS DIRETAMENTE) ==========
+// ========== MODELOS ==========
 
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -88,13 +88,6 @@ async function getPaymentStatus() {
         const daysDiff = Math.floor((today - lastPayment) / (1000 * 60 * 60 * 24));
         const daysOverdue = isBlocked ? Math.floor((today - nextDue) / (1000 * 60 * 60 * 24)) : 0;
 
-        console.log('📅 Status Pagamento:', {
-            lastPayment: lastPayment.toLocaleDateString('pt-BR'),
-            hoje: today.toLocaleDateString('pt-BR'),
-            proximoVencimento: nextDue.toLocaleDateString('pt-BR'),
-            isBlocked: isBlocked
-        });
-
         return {
             isValid: !isBlocked,
             daysOverdue: daysOverdue,
@@ -132,7 +125,7 @@ function renderBlockedHTML(paymentStatus) {
     </div></body></html>`;
 }
 
-// Middleware de bloqueio do site por falta de pagamento
+// Middleware de bloqueio
 const paymentBlocker = async (req, res, next) => {
     // 1. LIBERAÇÃO ABSOLUTA DO PAINEL ADMIN
     if (req.path === '/admin.html' || req.path === '/admin' || req.path === '/admin/') {
@@ -149,7 +142,7 @@ const paymentBlocker = async (req, res, next) => {
         '/api/forgot-password',
         '/api/settings',
         '/api/barbers',
-        '/api/bookings/all' // 🔥 ADICIONADO AQUI
+        '/api/bookings/all'
     ];
 
     if (publicRoutes.includes(req.path)) {
@@ -183,7 +176,16 @@ app.get('/', async (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-// ========== API PARA VERIFICAR STATUS DO PAGAMENTO ==========
+// 🔥 ROTAS EXPLÍCITAS PARA O PAINEL ADMIN
+app.get('/admin.html', async (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'admin.html'));
+});
+
+app.get('/admin', async (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'admin.html'));
+});
+
+// ========== API DE PAGAMENTO ==========
 app.get('/api/payment-status', async (req, res) => {
     const status = await getPaymentStatus();
     res.json({
@@ -191,7 +193,6 @@ app.get('/api/payment-status', async (req, res) => {
     });
 });
 
-// ========== API PARA REGISTRAR PAGAMENTO (ADMIN) ==========
 app.post('/api/register-payment', async (req, res) => {
     try {
         const { adminKey, paymentDate } = req.body;
