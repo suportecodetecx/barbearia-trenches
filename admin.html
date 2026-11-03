@@ -557,7 +557,7 @@
             <select id="filterMonth">
                 <option value="">Todos os meses</option>
                 <option value="1">Janeiro</option><option value="2">Fevereiro</option>
-                <option value="3">Março</option><option value="4" selected>Abril</option>
+                <option value="3">Março</option><option value="4">Abril</option>
                 <option value="5">Maio</option><option value="6">Junho</option>
                 <option value="7">Julho</option><option value="8">Agosto</option>
                 <option value="9">Setembro</option><option value="10">Outubro</option>
@@ -565,7 +565,7 @@
             </select>
             <select id="filterYear">
                 <option value="2025">2025</option>
-                <option value="2026" selected>2026</option>
+                <option value="2026">2026</option>
                 <option value="2027">2027</option>
             </select>
             <input type="date" id="filterDay">
@@ -674,6 +674,14 @@ Mogi das Cruzes - SP</textarea></div>
         let editBarberId = null, editPhotoPreview = null, deleteBarberId = null;
         let deleteBookingData = null;
         let countdownInterval = null;
+
+        // ========== FUNÇÃO PARA PEGAR A DATA LOCAL (BRASIL) ==========
+        function getTodayLocalBR() {
+            const now = new Date();
+            // Ajusta para o fuso de Brasília (UTC-3)
+            const brTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+            return brTime.toISOString().split('T')[0];
+        }
 
         // ========== FUNÇÃO PARA ATUALIZAR TIMER ==========
         function updateCountdown(targetDate, statusType) {
@@ -1076,15 +1084,65 @@ Mogi das Cruzes - SP</textarea></div>
         async function saveContact() { const contact = { phone: document.getElementById('adminPhone').value, instagram: document.getElementById('adminInstagram').value, address: document.getElementById('adminAddress').value }; const success = await saveSettings(contact); if (success) { showToast('Contato Atualizado', 'WhatsApp, Instagram e endereço salvos globalmente.'); } }
 
         async function loadAllBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { allBookings = await r.json(); displayBookings(allBookings); document.getElementById('reservasTitle').innerHTML = 'Todas as Reservas'; calculateRevenue(allBookings); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
-        async function loadTodaysBookings() { const c = document.getElementById('bookingsList'); c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; try { const r = await fetch(API_URL + '/api/bookings/all'); if (r.ok) { const b = await r.json(); const today = new Date().toISOString().split('T')[0]; const filtered = b.filter(x => x.date === today); displayBookings(filtered); document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')'; calculateRevenue(filtered); } } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } }
-        function filterBookings() { const m = document.getElementById('filterMonth').value; const y = document.getElementById('filterYear').value; const dayFilter = document.getElementById('filterDay').value; let filtered = [...allBookings]; if (dayFilter) { filtered = filtered.filter(b => b.date === dayFilter); const formattedDate = dayFilter.split('-').reverse().join('/'); document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`; } else if (m && y) { filtered = filtered.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; }); const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']; document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y; } else { showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).'); return; } displayBookings(filtered); calculateRevenue(filtered); }
-        function clearFilters() { document.getElementById('filterMonth').value = ''; document.getElementById('filterYear').value = '2026'; document.getElementById('filterDay').value = ''; loadAllBookings(); }
+
+        // ✅ CORREÇÃO: Usando a data local do Brasil
+        async function loadTodaysBookings() { 
+            const c = document.getElementById('bookingsList'); 
+            c.innerHTML = '<p style="color:var(--silver-soft);">Carregando...</p>'; 
+            try { 
+                const r = await fetch(API_URL + '/api/bookings/all'); 
+                if (r.ok) { 
+                    const b = await r.json(); 
+                    const today = getTodayLocalBR(); 
+                    const filtered = b.filter(x => x.date === today); 
+                    displayBookings(filtered); 
+                    document.getElementById('reservasTitle').innerHTML = 'Reservas de Hoje (' + today.split('-').reverse().join('/') + ')'; 
+                    calculateRevenue(filtered); 
+                } 
+            } catch(e) { c.innerHTML = '<p style="color:#ff8888;">Erro de conexão</p>'; } 
+        }
+
+        // ✅ CORREÇÃO: Filtro com prioridade clara
+        function filterBookings() { 
+            const m = document.getElementById('filterMonth').value; 
+            const y = document.getElementById('filterYear').value; 
+            const dayFilter = document.getElementById('filterDay').value; 
+            let filtered = [...allBookings]; 
+
+            if (dayFilter) { 
+                filtered = filtered.filter(b => b.date === dayFilter); 
+                const formattedDate = dayFilter.split('-').reverse().join('/'); 
+                document.getElementById('reservasTitle').innerHTML = `Reservas - ${formattedDate}`; 
+            } else if (m && y) { 
+                filtered = filtered.filter(b => { const [by, bm] = b.date.split('-'); return by === y && bm === m; }); 
+                const mn = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']; 
+                document.getElementById('reservasTitle').innerHTML = 'Reservas - ' + mn[parseInt(m) - 1] + ' ' + y; 
+            } else { 
+                showToast('Atenção', 'Selecione um filtro válido (mês/ano ou dia específico).'); 
+                return; 
+            } 
+            displayBookings(filtered); 
+            calculateRevenue(filtered); 
+        }
+
+        // ✅ CORREÇÃO: Limpar filtros com o ano atual
+        function clearFilters() { 
+            document.getElementById('filterMonth').value = ''; 
+            document.getElementById('filterYear').value = new Date().getFullYear(); 
+            document.getElementById('filterDay').value = ''; 
+            loadAllBookings(); 
+        }
+
         function displayBookings(b) { const c = document.getElementById('bookingsList'), ce = document.getElementById('reservasCount'); if (!c) return; if (b.length === 0) { c.innerHTML = '<p style="color:var(--silver-soft);">Nenhuma reserva</p>'; ce.textContent = '0 reservas'; return; } b.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)); ce.textContent = b.length + ' reserva' + (b.length !== 1 ? 's' : ''); c.innerHTML = b.map(x => `<div class="booking-item"><strong><i class="far fa-calendar-alt"></i> ${x.date.split('-').reverse().join('/')}</strong> - <strong><i class="far fa-clock"></i> ${x.time}</strong><br><i class="fas fa-user"></i> Cliente: ${escapeHtml(x.userName)}<br><i class="fas fa-cut"></i> Serviço: ${escapeHtml(x.service)}<br><i class="fas fa-phone"></i> <small>${x.userId || 'N/E'}</small><br><button class="btn-delete-booking" onclick="openDeleteBookingModal('${x._id}', '${x.date}', '${x.time}', '${escapeHtml(x.userName)}', '${escapeHtml(x.service)}')"><i class="fas fa-trash"></i> CANCELAR RESERVA</button></div>`).join(''); }
         function logout() { window.location.href = 'index.html'; }
 
         async function init() {
             console.log('🚀 Iniciando Painel Gestor...');
             console.log('📡 Backend URL:', API_URL);
+            
+            // Inicializa o ano atual no filtro
+            document.getElementById('filterYear').value = new Date().getFullYear();
+            
             await loadSettings();
             await loadBarbeiros();
             await loadInspirationStatus();
